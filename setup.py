@@ -26,7 +26,7 @@ setup(name=NAME,
       url=URL,
       download_url=DOWNLOAD_URL,
       license=LICENSE,
-      packages=['matplotlylib', 'matplotlylib/mplexporter/mplexporter'])
+      packages=['matplotlylib', 'matplotlylib.mplexporter.mplexporter'])
 
       # package_data={'mpld3': ['js/*.js']},
       # classifiers=[
