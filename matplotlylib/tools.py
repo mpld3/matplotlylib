@@ -139,6 +139,45 @@ def convert_to_paper(x, y, layout):
     return num_x/den_x, num_y/den_y
 
 
+def add_to_bars(bar_coll, props):
+            bar_coll.append({
+                'bar': props['mplobj'],
+                'bar_base': props['data'][0][1],
+                'left': props['data'][0][0],
+                'height': props['data'][2][1],
+                'width': props['data'][2][0] - props['data'][0][0],
+                'alpha': props['style']['alpha'],
+                'edgecolor': props['style']['edgecolor'],
+                'facecolor': props['style']['facecolor'],
+                'edgewidth': props['style']['edgewidth'],
+                'dasharray': props['style']['dasharray'],
+                'zorder': props['style']['zorder']
+                })
+
+
+def check_bar_match(old_coll, props):
+    old_bar = old_coll[0]
+    tests = []
+    tests += props['style']['facecolor'] == old_bar['facecolor'],
+    width = props['data'][2][0] - props['data'][0][0]
+    tests += width - old_bar['width'] < 0.000001,
+    tests += props['data'][0][1] == old_bar['bar_base'],
+    if all(tests):
+        return True
+    else:
+        return False
+
+
+def is_bar(**props):
+    tests = []
+    tests += props['data'][0][1] == 0
+    if all(tests):
+        return True
+
+
+def is_barh(**props):
+    return False
+
 def clean_dict(node, parent=None, node_key=None):
     """Remove None, 'none', 'None', and {} from a dictionary obj.
 

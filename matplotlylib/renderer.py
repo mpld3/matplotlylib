@@ -56,6 +56,7 @@ class PlotlyRenderer(Renderer):
         self.api_key = api_key
         self.data = []
         self.layout = {}
+        self.current_ax_patches = []
         self.axis_ct = 0
         self.mpl_x_bounds = (0, 1)
         self.mpl_y_bounds = (0, 1)
@@ -117,8 +118,8 @@ class PlotlyRenderer(Renderer):
         number of plots by incrementing the axis_ct attribute.
 
         Setting the proper plot domain in plotly is a bit tricky. Refer to
-        the documentation for plotly_utils.get_plotly_x_domain and
-        plotly_utils.get_plotly_y_domain.
+        the documentation for tools.get_plotly_x_domain and
+        tools.get_plotly_y_domain.
 
         Positional arguments:
         ax -- an mpl axes object. This will become a subplot in plotly.
@@ -147,7 +148,21 @@ class PlotlyRenderer(Renderer):
 
     def close_axes(self, ax):
         """Close the axes object and clean up."""
-        pass
+        for patch_coll in self.current_ax_patches:
+            patch_coll.sort(key=lambda b: b['left'])
+            data = {
+                'type': 'bar',
+                'x': [bar['left']+bar['width']/2 for bar in patch_coll],
+                'y': [bar['height'] for bar in patch_coll],
+                'marker': {
+                    'color': bar['facecolor'],
+                    'line': {
+                        'width': bar['edgewidth']
+                    }
+                }
+            }
+            self.data += data,
+        self.current_ax_patches = []  # clear this for next axes obj
 
     def draw_line(self, **props):
         """Create a data dict for a line obj.
@@ -228,6 +243,32 @@ class PlotlyRenderer(Renderer):
         """
         warnings.warn('draw_image not implemented yet, images will not show '
                       'up in plotly.')
+
+    def draw_path(self, **props):
+        """Draw path, currently only attempts to draw bar charts.
+
+        Only minimally implemented.
+
+        """
+        if tools.is_bar(**props):  # if we think it's a bar, add it!
+            self.draw_bar(**props)
+        elif tools.is_barh(**props):  # perhaps a horizontal bar?
+            pass
+
+    def draw_bar(self, **props):
+        if len(self.current_ax_patches) == 0:
+            self.current_ax_patches.append([])
+            tools.add_to_bars(self.current_ax_patches[-1], props)
+        else:
+            match = False
+            for patch_collection in self.current_ax_patches:
+                if tools.check_bar_match(patch_collection, props):
+                    match = True
+                    tools.add_to_bars(patch_collection, props)
+                    break
+            if not match:
+                self.current_ax_patches.append([])
+                tools.add_to_bars(self.current_ax_patches[-1], props)
 
     def draw_text(self, **props):
         """Create an annotation dict for a text obj.
