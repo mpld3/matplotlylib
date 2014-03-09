@@ -10,9 +10,9 @@ Attributes:
 
 """
 import warnings
+from mplexporter.renderers.base import Renderer
+from mplexporter import Exporter
 from . import tools
-from .. base import Renderer
-from ... exporter import Exporter
 
 
 class PlotlyRenderer(Renderer):
