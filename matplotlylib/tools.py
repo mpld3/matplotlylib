@@ -139,29 +139,73 @@ def convert_to_paper(x, y, layout):
     return num_x/den_x, num_y/den_y
 
 
-def add_to_bars(bar_coll, props):
-            bar_coll.append({
-                'bar': props['mplobj'],
-                'bar_base': props['data'][0][1],
-                'left': props['data'][0][0],
-                'height': props['data'][2][1],
-                'width': props['data'][2][0] - props['data'][0][0],
-                'alpha': props['style']['alpha'],
-                'edgecolor': props['style']['edgecolor'],
-                'facecolor': props['style']['facecolor'],
-                'edgewidth': props['style']['edgewidth'],
-                'dasharray': props['style']['dasharray'],
-                'zorder': props['style']['zorder']
-                })
+def get_rect_xmin(data):
+    return min(data[0][0], data[1][0], data[2][0], data[3][0])
 
 
-def check_bar_match(old_coll, props):
-    old_bar = old_coll[0]
+def get_rect_xmax(data):
+    return max(data[0][0], data[1][0], data[2][0], data[3][0])
+
+
+def get_rect_ymin(data):
+    return min(data[0][1], data[1][1], data[2][1], data[3][1])
+
+
+def get_rect_ymax(data):
+    return max(data[0][1], data[1][1], data[2][1], data[3][1])
+
+
+# def add_to_bars(bar_coll, props):
+#     bar_coll.append({
+#         'bar': props['mplobj'],
+#         'bardir': props['bardir'],
+#         # 'bar_base': props['data'][0][1],
+#         # 'left': props['data'][0][0],
+#         'x0': props['data'][0][0],
+#         'y0': props['data'][0][1],
+#         'x1': props['data'][2][0],
+#         'y1': props['data'][2][1],
+#         # 'height': props['data'][2][1],
+#         # 'width': props['data'][2][0] - props['data'][0][0],
+#         'alpha': props['style']['alpha'],
+#         'edgecolor': props['style']['edgecolor'],
+#         'facecolor': props['style']['facecolor'],
+#         'edgewidth': props['style']['edgewidth'],
+#         'dasharray': props['style']['dasharray'],
+#         'zorder': props['style']['zorder']
+#         })
+
+def make_bar(**props):
+    return {
+        'bar': props['mplobj'],
+        'bardir': props['bardir'],
+        'x0': get_rect_xmin(props['data']),
+        'y0': get_rect_ymin(props['data']),
+        'x1': get_rect_xmax(props['data']),
+        'y1': get_rect_ymax(props['data']),
+        'alpha': props['style']['alpha'],
+        'edgecolor': props['style']['edgecolor'],
+        'facecolor': props['style']['facecolor'],
+        'edgewidth': props['style']['edgewidth'],
+        'dasharray': props['style']['dasharray'],
+        'zorder': props['style']['zorder']
+    }
+
+
+def check_bar_match(old_bar, new_bar):
     tests = []
-    tests += props['style']['facecolor'] == old_bar['facecolor'],
-    width = props['data'][2][0] - props['data'][0][0]
-    tests += width - old_bar['width'] < 0.000001,
-    tests += props['data'][0][1] == old_bar['bar_base'],
+    tests += new_bar['bardir'] == old_bar['bardir'],
+    tests += new_bar['facecolor'] == old_bar['facecolor'],
+    if new_bar['bardir'] == 'v':
+        new_width = new_bar['x1'] - new_bar['x0']
+        old_width = old_bar['x1'] - old_bar['x0']
+        tests += new_width - old_width < 0.000001,
+        tests += new_bar['y0'] == old_bar['y0'],
+    elif new_bar['bardir'] == 'h':
+        new_height = new_bar['y1'] - new_bar['y0']
+        old_height = old_bar['y1'] - old_bar['y0']
+        tests += new_height - old_height < 0.000001,
+        tests += new_bar['x0'] == old_bar['x0'],
     if all(tests):
         return True
     else:
@@ -169,14 +213,27 @@ def check_bar_match(old_coll, props):
 
 
 def is_bar(**props):
+    # print '\n'
+    # print 'bar props: ', props['data']
     tests = []
-    tests += props['data'][0][1] == 0
+    tests += get_rect_ymin(props['data']) == 0,
+    # print tests
     if all(tests):
         return True
+    else:
+        return False
 
 
 def is_barh(**props):
-    return False
+    # print '\n'
+    # print 'barh props: ', props['data']
+    tests = []
+    tests += get_rect_xmin(props['data']) == 0,
+    # print tests
+    if all(tests):
+        return True
+    else:
+        return False
 
 def clean_dict(node, parent=None, node_key=None):
     """Remove None, 'none', 'None', and {} from a dictionary obj.
