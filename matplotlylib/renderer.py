@@ -117,8 +117,8 @@ class PlotlyRenderer(Renderer):
         number of plots by incrementing the axis_ct attribute.
 
         Setting the proper plot domain in plotly is a bit tricky. Refer to
-        the documentation for plotly_utils.get_plotly_x_domain and
-        plotly_utils.get_plotly_y_domain.
+        the documentation for tools.get_plotly_x_domain and
+        tools.get_plotly_y_domain.
 
         Positional arguments:
         ax -- an mpl axes object. This will become a subplot in plotly.
@@ -331,6 +331,34 @@ class PlotlyRenderer(Renderer):
                      'color': props['style']['color']
         }
         self.layout['yaxis{}'.format(self.axis_ct)]['titlefont'] = titlefont
+
+    def resize(self):
+        """Revert figure layout to allow plotly to resize.
+
+        By default, PlotlyRenderer tries its hardest to precisely mimic an
+        mpl figure. However, plotly is pretty good with aesthetics. By
+        running PlotlyRenderer.resize(), layout parameters are deleted. This
+        lets plotly choose them instead of mpl.
+
+        """
+        del self.layout['width']
+        del self.layout['height']
+        del self.layout['autosize']
+        del self.layout['margin']
+
+    def strip_style(self):
+        for data_dict in self.data:
+            tools.walk_and_strip(data_dict, tools.SAFE_KEYS[
+               'data'])
+            tools.clean_dict(data_dict)
+        tools.walk_and_strip(self.layout, tools.SAFE_KEYS[
+            'layout'])
+        tools.clean_dict(self.layout)
+        try:
+            for annotation in self.layout['annotations']:
+                tools.clean_dict(annotation)
+        except KeyError:
+            pass  # guess there weren't any annotations...
 
 
 def fig_to_plotly(fig, username=None, api_key=None, notebook=False):

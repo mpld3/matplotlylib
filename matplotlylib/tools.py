@@ -139,6 +139,35 @@ def convert_to_paper(x, y, layout):
     return num_x/den_x, num_y/den_y
 
 
+def walk_and_strip(node, safe_keys):
+    """Walk a dictionary or list structure and set unsafe keys to None
+
+    This function is used primarly for stripping style properties from the
+    data and layout dictionaries created by a PlotlyRenderer. It will walk
+    through a collection, test keys against the specified 'safe-keys' list which
+    are not to be deleted, and fill in a None value for unsafe key values.
+
+    Cleaning the dictionary of these None values is relegated to the
+    clean_dict function, which already has the capability to take care of this.
+
+    Positional arguments:
+    node -- the list or collection to be walked, tested, and stripped
+    safe_keys -- a list of safe keys, intended for use with SAFE_KEYS[*]
+
+    """
+    if isinstance(node, dict):
+        for key in node:
+            if key in safe_keys:
+                if isinstance(node[key], (dict, list)):
+                    walk_and_strip(node[key], safe_keys)
+            else:
+                node[key]=None
+    elif isinstance(node, list):
+        for item in node:
+            if isinstance(item, dict):
+                walk_and_strip(item, safe_keys)
+
+
 def clean_dict(node, parent=None, node_key=None):
     """Remove None, 'none', 'None', and {} from a dictionary obj.
 
@@ -332,4 +361,15 @@ LAYOUT_VAL_REPAIRS = {
     ('yaxis', 'anchor'): {'x1': 'x'},
     ('annotations', 'xref'): {'x1': 'x'},
     ('annotations', 'yref'): {'y1': 'y'}
+}
+
+SAFE_KEYS = {
+    'data': ['x', 'y', 'type', 'name', 'line', 'marker', 'mode', 'symbol',
+             'dash', 'xaxis', 'yaxis'],
+    'layout': ['x', 'y', 'type', 'title', 'height', 'width', 'domain',
+               'anchor', 'legend', 'xaxis', 'yaxis', 'autosize', 'margin',
+               'l', 'r', 't', 'b', 'pad', 'barmode', 'boxmode', 'annotations',
+               'text', 'xref', 'yref', 'showarrow', 'xanchor', 'yanchor',
+               'range', 'showlegend', 'xaxis2', 'yaxis2', 'xaxis3', 'yaxis3',
+                'xaxis4', 'yaxis4']
 }
