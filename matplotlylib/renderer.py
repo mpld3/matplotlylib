@@ -10,8 +10,7 @@ Attributes:
 
 """
 import warnings
-from mplexporter.renderers.base import Renderer
-from mplexporter import Exporter
+from . mplexporter import Exporter, Renderer
 from . import tools
 
 
@@ -45,15 +44,13 @@ class PlotlyRenderer(Renderer):
         draw_text(self, **props)
 
     """
-    def __init__(self, username=None, api_key=None):
+    def __init__(self):
         """Initialize PlotlyRenderer obj.
 
         PlotlyRenderer obj is called on by an Exporter object to draw
         matplotlib objects like figures, axes, text, etc.
 
         """
-        self.username = username
-        self.api_key = api_key
         self.data = []
         self.layout = {}
         self.axis_ct = 0
@@ -341,10 +338,11 @@ class PlotlyRenderer(Renderer):
         lets plotly choose them instead of mpl.
 
         """
-        del self.layout['width']
-        del self.layout['height']
-        del self.layout['autosize']
-        del self.layout['margin']
+        for key in ['width', 'height', 'autosize', 'margin']:
+            try:
+                del self.layout[key]
+            except KeyError:
+                pass
 
     def strip_style(self):
         for data_dict in self.data:
@@ -361,7 +359,8 @@ class PlotlyRenderer(Renderer):
             pass  # guess there weren't any annotations...
 
 
-def fig_to_plotly(fig, username=None, api_key=None, notebook=False):
+def fig_to_plotly(fig, username=None, api_key=None, notebook=False,
+                  resize=False, strip_style=False):
     """Convert a matplotlib figure to plotly dictionary and send.
 
     All available information about matplotlib visualizations are stored
@@ -410,9 +409,13 @@ def fig_to_plotly(fig, username=None, api_key=None, notebook=False):
 
     """
     import plotly
-    renderer = PlotlyRenderer(username=username, api_key=api_key)
+    renderer = PlotlyRenderer()
     Exporter(renderer).run(fig)
-    py = plotly.plotly(renderer.username, renderer.api_key)
+    if resize:
+        renderer.resize()
+    if strip_style:
+        renderer.strip_style()
+    py = plotly.plotly(username, api_key)
     if notebook:
         return py.iplot(renderer.data, layout=renderer.layout)
     else:

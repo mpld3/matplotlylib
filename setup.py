@@ -27,6 +27,6 @@ setup(name=NAME,
       url=URL,
       download_url=DOWNLOAD_URL,
       license=LICENSE,
-      py_modules=['matplotlylib/mplexporter/renderers/base'],
       packages=['matplotlylib',
-                'matplotlylib/mplexporter'])
+                'matplotlylib/mplexporter',
+                'matplotlylib/mplexporter/renderers'])
