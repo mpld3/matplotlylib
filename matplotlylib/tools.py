@@ -431,11 +431,12 @@ SYMBOL_MAP = {
     's': 'square',
     '+': 'cross',
     'x': 'x',
+    '*': 'x',  # no star yet in plotly!!
     'D': 'diamond',
     'd': 'diamond',
-    '-': 'solid',
-    '--': 'dash',
-    '-.': 'dashdot'
+    # '-': 'solid',
+    # '--': 'dash',
+    # '-.': 'dashdot'
 }
 
 VA_MAP = {

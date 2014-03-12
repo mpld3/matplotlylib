@@ -130,14 +130,16 @@ class PlotlyRenderer(Renderer):
                 'showgrid': props['axes'][1]['grid']['gridOn'],
                 'domain': tools.get_plotly_x_domain(props['bounds'],
                                                            self.mpl_x_bounds),
-                'anchor': 'y{}'.format(self.axis_ct)
+                'anchor': 'y{}'.format(self.axis_ct),
+                'zeroline': False
             },
             'yaxis{}'.format(self.axis_ct): {
                 'range': props['ylim'],
                 'showgrid': props['axes'][0]['grid']['gridOn'],
                 'domain': tools.get_plotly_y_domain(props['bounds'],
                                                            self.mpl_y_bounds),
-                'anchor': 'x{}'.format(self.axis_ct)
+                'anchor': 'x{}'.format(self.axis_ct),
+                'zeroline': False
             }
         }
         for key, value in layout.items():
