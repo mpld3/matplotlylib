@@ -169,22 +169,36 @@ def walk_and_strip(node, safe_keys):
 
 
 def get_rect_xmin(data):
+    """Find minimum x value from four (x,y) vertices."""
     return min(data[0][0], data[1][0], data[2][0], data[3][0])
 
 
 def get_rect_xmax(data):
+    """Find maximum x value from four (x,y) vertices."""
     return max(data[0][0], data[1][0], data[2][0], data[3][0])
 
 
 def get_rect_ymin(data):
+    """Find minimum y value from four (x,y) vertices."""
     return min(data[0][1], data[1][1], data[2][1], data[3][1])
 
 
 def get_rect_ymax(data):
+    """Find maximum y value from four (x,y) vertices."""
     return max(data[0][1], data[1][1], data[2][1], data[3][1])
 
 
 def make_bar(**props):
+    """Make an intermediate bar dictionary.
+
+    This creates a bar dictionary which aids in the comparison of new bars to
+    old bars from other bar chart (patch) collections. This is not the
+    dictionary that needs to get passed to plotly as a data dictionary. That
+    happens in PlotlyRenderer in that class's draw_bar method. In other
+    words, this dictionary describes a SINGLE bar, whereas, plotly will
+    require a set of bars to be passed in a data dictionary.
+
+    """
     return {
         'bar': props['mplobj'],
         'bardir': props['bardir'],
@@ -202,6 +216,13 @@ def make_bar(**props):
 
 
 def check_bar_match(old_bar, new_bar):
+    """Check if two bars belong in the same collection (bar chart).
+
+    Positional arguments:
+    old_bar -- a previously sorted bar dictionary.
+    new_bar -- a new bar dictionary that needs to be sorted.
+
+    """
     tests = []
     tests += new_bar['bardir'] == old_bar['bardir'],
     tests += new_bar['facecolor'] == old_bar['facecolor'],
@@ -222,6 +243,7 @@ def check_bar_match(old_bar, new_bar):
 
 
 def is_bar(**props):
+    """A test to decide whether a path is a bar from a vertical bar chart."""
     # print '\n'
     # print 'bar props: ', props['data']
     tests = []
@@ -234,6 +256,7 @@ def is_bar(**props):
 
 
 def is_barh(**props):
+    """A test to decide whether a path is a bar from a horizontal bar chart."""
     # print '\n'
     # print 'barh props: ', props['data']
     tests = []

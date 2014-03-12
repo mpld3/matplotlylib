@@ -144,12 +144,34 @@ class PlotlyRenderer(Renderer):
             self.layout[key] = value
 
     def close_axes(self, ax):
-        """Close the axes object and clean up."""
+        """Close the axes object and clean up.
+
+        Bars from bar charts are given to PlotlyRenderer one-by-one,
+        thus they need to be taken care of at the close of each axes object.
+        The self.current_ax_patches variable should be empty unless a bar
+        chart has been created or a rectangle object has been drawn that has
+        an edge exactly on the lines x=0 or y=0.
+
+        Positional arguments:
+        ax -- an mpl axes object, not required at this time.
+
+        """
         for patch_coll in self.current_ax_patches:
             self.draw_bar(patch_coll)
         self.current_ax_patches = []  # clear this for next axes obj
 
     def draw_bar(self, patch_coll):
+        """Draw a collection of similar patches as a bar chart.
+
+        After bars are sorted, an appropriate data dictionary must be created
+        to tell plotly about this data. Just like draw_line or draw_markers,
+        draw_bar translates patch/path information into something plotly
+        understands.
+
+        Positional arguments:
+        patch_coll -- a collection of patches to be drawn as a bar chart.
+
+        """
         bardir = patch_coll[0]['bardir']
         if bardir == 'v':
             patch_coll.sort(key=lambda b: b['x0'])
@@ -267,17 +289,33 @@ class PlotlyRenderer(Renderer):
     def draw_path(self, **props):
         """Draw path, currently only attempts to draw bar charts.
 
-        Only minimally implemented.
+        This function attempts to sort a given path into a collection of
+        horizontal or vertical bar charts. Most of the actual code takes
+        place in functions from tools.py.
 
         """
-        if tools.is_bar(**props):  # if we think it's a bar, add it!
+        is_bar = tools.is_bar(**props)
+        is_barh = tools.is_barh(**props)
+        if is_bar:  # if we think it's a bar, add it!
             bar = tools.make_bar(bardir='v', **props)
             self.file_bar(bar)
-        if tools.is_barh(**props):  # perhaps a horizontal bar?
+        if is_barh:  # perhaps a horizontal bar?
             bar = tools.make_bar(bardir='h', **props)
             self.file_bar(bar)
+        if not (is_bar or is_barh):
+            warnings.warn("I found a path object that I don't think is part "
+                          "of a bar chart. Ignoring...")
 
     def file_bar(self, bar):
+        """Puts a given bar into an appropriate bar or barh collection.
+
+        Bars come from the mplexporter one-by-one. To try to put them into
+        appropriate data sets, we must compare them to existing data.
+
+        Positional arguments:
+        bar -- a bar dictionary created in tools.make_bar.py.
+
+        """
         if len(self.current_ax_patches) == 0:
             self.current_ax_patches.append([])
             self.current_ax_patches[-1] += bar,
