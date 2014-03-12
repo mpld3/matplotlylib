@@ -168,6 +168,83 @@ def walk_and_strip(node, safe_keys):
                 walk_and_strip(item, safe_keys)
 
 
+def get_rect_xmin(data):
+    return min(data[0][0], data[1][0], data[2][0], data[3][0])
+
+
+def get_rect_xmax(data):
+    return max(data[0][0], data[1][0], data[2][0], data[3][0])
+
+
+def get_rect_ymin(data):
+    return min(data[0][1], data[1][1], data[2][1], data[3][1])
+
+
+def get_rect_ymax(data):
+    return max(data[0][1], data[1][1], data[2][1], data[3][1])
+
+
+def make_bar(**props):
+    return {
+        'bar': props['mplobj'],
+        'bardir': props['bardir'],
+        'x0': get_rect_xmin(props['data']),
+        'y0': get_rect_ymin(props['data']),
+        'x1': get_rect_xmax(props['data']),
+        'y1': get_rect_ymax(props['data']),
+        'alpha': props['style']['alpha'],
+        'edgecolor': props['style']['edgecolor'],
+        'facecolor': props['style']['facecolor'],
+        'edgewidth': props['style']['edgewidth'],
+        'dasharray': props['style']['dasharray'],
+        'zorder': props['style']['zorder']
+    }
+
+
+def check_bar_match(old_bar, new_bar):
+    tests = []
+    tests += new_bar['bardir'] == old_bar['bardir'],
+    tests += new_bar['facecolor'] == old_bar['facecolor'],
+    if new_bar['bardir'] == 'v':
+        new_width = new_bar['x1'] - new_bar['x0']
+        old_width = old_bar['x1'] - old_bar['x0']
+        tests += new_width - old_width < 0.000001,
+        tests += new_bar['y0'] == old_bar['y0'],
+    elif new_bar['bardir'] == 'h':
+        new_height = new_bar['y1'] - new_bar['y0']
+        old_height = old_bar['y1'] - old_bar['y0']
+        tests += new_height - old_height < 0.000001,
+        tests += new_bar['x0'] == old_bar['x0'],
+    if all(tests):
+        return True
+    else:
+        return False
+
+
+def is_bar(**props):
+    # print '\n'
+    # print 'bar props: ', props['data']
+    tests = []
+    tests += get_rect_ymin(props['data']) == 0,
+    # print tests
+    if all(tests):
+        return True
+    else:
+        return False
+
+
+def is_barh(**props):
+    # print '\n'
+    # print 'barh props: ', props['data']
+    tests = []
+    tests += get_rect_xmin(props['data']) == 0,
+    # print tests
+    if all(tests):
+        return True
+    else:
+        return False
+
+
 def clean_dict(node, parent=None, node_key=None):
     """Remove None, 'none', 'None', and {} from a dictionary obj.
 

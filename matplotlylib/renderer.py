@@ -53,6 +53,7 @@ class PlotlyRenderer(Renderer):
         """
         self.data = []
         self.layout = {}
+        self.current_ax_patches = []
         self.axis_ct = 0
         self.mpl_x_bounds = (0, 1)
         self.mpl_y_bounds = (0, 1)
@@ -144,7 +145,53 @@ class PlotlyRenderer(Renderer):
 
     def close_axes(self, ax):
         """Close the axes object and clean up."""
-        pass
+        for patch_coll in self.current_ax_patches:
+            self.draw_bar(patch_coll)
+        self.current_ax_patches = []  # clear this for next axes obj
+
+    def draw_bar(self, patch_coll):
+        bardir = patch_coll[0]['bardir']
+        if bardir == 'v':
+            patch_coll.sort(key=lambda b: b['x0'])
+            data = {
+                'type': 'bar',
+                'bardir': bardir,
+                'x': [bar['x0']+(bar['x1']-bar['x0'])/2
+                      for bar in patch_coll],
+                'y': [bar['y1'] for bar in patch_coll],
+                'xaxis': 'x{}'.format(self.axis_ct),
+                'yaxis': 'y{}'.format(self.axis_ct),
+                'marker': {
+                    'color': patch_coll[0]['facecolor'],
+                    'line': {
+                        'width': patch_coll[0]['edgewidth']
+                    }
+                },
+                'opacity': patch_coll[0]['alpha']
+            }
+        elif bardir == 'h':
+            patch_coll.sort(key=lambda b: b['y0'])
+            data = {
+                'type': 'bar',
+                'bardir': bardir,
+                'x': [bar['y0']+(bar['y1']-bar['y0'])/2
+                      for bar in patch_coll],
+                'y': [bar['x1'] for bar in patch_coll],
+                'xaxis': 'x{}'.format(self.axis_ct),
+                'yaxis': 'y{}'.format(self.axis_ct),
+                'marker': {
+                    'color': patch_coll[0]['facecolor'],
+                    'line': {
+                        'width': patch_coll[0]['edgewidth']
+                    }
+                },
+                'opacity': patch_coll[0]['alpha']
+            }
+        if len(data['x']) > 1:
+            self.data += data,
+        else:
+            warnings.warn('found box chart data with length <= 1, '
+                          'assuming data redundancy, not plotting.')
 
     def draw_line(self, **props):
         """Create a data dict for a line obj.
@@ -208,15 +255,6 @@ class PlotlyRenderer(Renderer):
         else:
             pass
 
-    def draw_path(self, **props):
-        """Draw path.
-
-        Not implemented yet!
-
-        """
-        warnings.warn('draw_path not implemented yet, this will effect any '
-                      'patch objects you may be creating in mpl')
-
     def draw_image(self, **props):
         """Draw image.
 
@@ -225,6 +263,33 @@ class PlotlyRenderer(Renderer):
         """
         warnings.warn('draw_image not implemented yet, images will not show '
                       'up in plotly.')
+
+    def draw_path(self, **props):
+        """Draw path, currently only attempts to draw bar charts.
+
+        Only minimally implemented.
+
+        """
+        if tools.is_bar(**props):  # if we think it's a bar, add it!
+            bar = tools.make_bar(bardir='v', **props)
+            self.file_bar(bar)
+        if tools.is_barh(**props):  # perhaps a horizontal bar?
+            bar = tools.make_bar(bardir='h', **props)
+            self.file_bar(bar)
+
+    def file_bar(self, bar):
+        if len(self.current_ax_patches) == 0:
+            self.current_ax_patches.append([])
+            self.current_ax_patches[-1] += bar,
+        else:
+            match = False
+            for patch_collection in self.current_ax_patches:
+                if tools.check_bar_match(patch_collection[0], bar):
+                    match = True
+                    patch_collection += bar,
+            if not match:
+                self.current_ax_patches.append([])
+                self.current_ax_patches[-1] += bar,
 
     def draw_text(self, **props):
         """Create an annotation dict for a text obj.
