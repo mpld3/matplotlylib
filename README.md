@@ -35,6 +35,14 @@ Check out the [IPython Notebook](https://github.com/mpld3/matplotlylib/blob/mast
 ---------
 ![](gallery/lines.png)
 
+### Bars
+--------
+![](gallery/bars.png)
+
+### Scatter
+-----------
+![](gallery/scatter.png)
+
 ### Subplots
 ------------
 ![](gallery/subplots.png)
