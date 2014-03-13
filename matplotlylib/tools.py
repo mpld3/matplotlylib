@@ -1,3 +1,19 @@
+def get_marker_size(dpi=None, aff=None):
+    if aff is not None and dpi is not None:
+        return aff.to_values()[0]*72/dpi
+    else:
+        return None
+
+
+def path_to_mpl_symbol(path):
+    verts = path[0]
+    code = tuple(path[1])
+    if code in PATH_MAP:
+        return PATH_MAP[code]
+    else:
+        return None
+
+
 def convert_symbol(mpl_symbol):
     """Convert mpl marker symbol to plotly symbol and return symbol."""
     if mpl_symbol in SYMBOL_MAP:
@@ -437,6 +453,19 @@ SYMBOL_MAP = {
     # '-': 'solid',
     # '--': 'dash',
     # '-.': 'dashdot'
+}
+
+PATH_MAP = {
+    ('M', 'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C', 'Z'): 'o',
+    ('M', 'L', 'L', 'L', 'L', 'L', 'L', 'L', 'L', 'L', 'Z'): '*',
+    ('M', 'L', 'L', 'L', 'L', 'L', 'L', 'L', 'Z'): '8',
+    ('M', 'L', 'L', 'L', 'L', 'L', 'Z'): 'h',
+    ('M', 'L', 'L', 'L', 'L', 'Z'): 'p',
+    ('M', 'L', 'M', 'L', 'M', 'L'): '1',
+    ('M', 'L', 'L', 'L', 'Z'): 's',
+    ('M', 'L', 'M', 'L'): '+',
+    ('M', 'L', 'L', 'Z'): '^',
+    ('M', 'L'): '|'
 }
 
 VA_MAP = {
