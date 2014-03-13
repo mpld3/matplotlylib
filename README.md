@@ -29,7 +29,7 @@ The second instruction will install the matplotlylib package, which now has mple
 
 Gallery
 -------
-Check out the [IPython Notebook](https://github.com/mpld3/matplotlylib/blob/master/notebooks/Plotly%20and%20mpld3.ipynb), or have a look at our [plotly profile](https://plot.ly/~mpld3/) where you can open and edit all of the examples.
+Check out the [IPython Notebook](http://nbviewer.ipython.org/github/mpld3/matplotlylib/blob/master/notebooks/Plotly%20and%20mpld3.ipynb), or have a look at our [plotly profile](https://plot.ly/~mpld3/) where you can open and edit all of the examples.
 
 ### Lines
 ---------
