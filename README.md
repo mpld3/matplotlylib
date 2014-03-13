@@ -7,9 +7,9 @@
 About 
 -----
 
-Plotly is a collaborative data analysis and graphing tool. The matplotlylib package allows users to take matplotlib figures and upload them to plotly where the data is linked directly to the graph and figures can be shared, tracked, and edited.
+[Plotly](https://plot.ly) is an online collaborative data analysis and graphing tool. The matplotlylib package allows users to export matplotlib figures to plotly. Plotly figures are shared, tracked, and edited all online and the data is always accessible from the graph.
 
-Find out more, sign up, and start sharing by [visiting us](https://plot.ly/).
+Find out more, sign up, and start sharing by visiting us at [https://plot.ly](https://plot.ly/).
 
 Install
 -------
@@ -19,9 +19,10 @@ This package is based on the [mplexporter](http://github.com/mpld3/mplexporter) 
 
 To get started you need to grab a copy of the matplotlylib repo. The makefile included in this is all you need to get setup. Just do the following:
 
-1. $ make build
-
-2. $ make install
+```bash
+$ make build
+$ make install
+```
 
 The first instruction will grab mplexporter and move it into the matplotlylib directory.
 
@@ -33,26 +34,26 @@ Check out the [IPython Notebook](http://nbviewer.ipython.org/github/mpld3/matplo
 
 ### Lines
 ---------
-![](gallery/lines.png)
+[![](gallery/lines.png)](https://plot.ly/~mpld3/5)
 
 ### Bars
 --------
-![](gallery/bars.png)
+[![](gallery/bars.png)](https://plot.ly/~mpld3/8)
 
 ### Scatter
 -----------
-![](gallery/scatter.png)
+[![](gallery/scatter.png)](https://plot.ly/~mpld3/9)
 
 ### Subplots
 ------------
-![](gallery/subplots.png)
+[![](gallery/subplots.png)](https://plot.ly/~mpld3/6)
 
 ### Annotations
 ---------------
-![](gallery/annotations.png)
+[![](gallery/annotations.png)](https://plot.ly/~mpld3/7)
 
 Details
 -------
-Created by: Plotly <matplotlylib@gmail.com>
+Created by: Plotly <matplotlylib@gmail.com>, [@plotlygraphs](https://twitter.com/plotlygraphs)
 
 License: BSD 3-clause
