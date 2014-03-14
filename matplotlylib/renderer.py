@@ -224,15 +224,15 @@ class PlotlyRenderer(Renderer):
     def draw_marked_line(self, **props):
         """Create a data dict for a line obj.
 
+        This will draw 'lines', 'markers', or 'lines+markers'.
+
         props.keys() -- [
         'coordinates',  ('data', 'axes', 'figure', or 'display')
         'data',         (a list of xy pairs)
-        'markers',      (boolean, are there markers?)
-        'lines',        (boolean, are there lines?)
         'mplobj',       (the matplotlib.lines.Line2D obj being rendered)
         'label',        (the name of the Line2D obj being rendered)
-        'linestyle',    (style dict from utils.get_line_style, see below)
-        'markerstyle',  (style dict from utils.get_marker_style, see below)
+        'linestyle',    (linestyle dict, can be None, see below)
+        'markerstyle',  (markerstyle dict, can be None, see below)
         ]
 
         props['linestyle'].keys() -- [
@@ -256,20 +256,20 @@ class PlotlyRenderer(Renderer):
         """
         self.msg += "    Attempting to draw a line\n"
         line, marker = None, None
-        if props['lines'] and props['markers']:
+        if props['linestyle'] and props['markerstyle']:
             mode = "lines+markers"
-        elif props['lines']:
+        elif props['linestyle']:
             mode = "lines"
-        elif props['markers']:
+        elif props['markerstyle']:
             mode = "markers"
-        if props['lines']:
+        if props['linestyle']:
             line = {
                 'opacity': props['linestyle']['alpha'],
                 'color': props['linestyle']['color'],
                 'width': props['linestyle']['linewidth'],
                 'dash': tools.convert_dash(props['linestyle']['dasharray'])
             }
-        if props['markers']:
+        if props['markerstyle']:
             marker = {
                 'opacity': props['markerstyle']['alpha'],
                 'color': props['markerstyle']['facecolor'],
@@ -281,6 +281,7 @@ class PlotlyRenderer(Renderer):
         if props['coordinates'] == 'data':
             trace = {
                 'mode': mode,
+                'name': props['label'],
                 'x': [xy_pair[0] for xy_pair in props['data']],
                 'y': [xy_pair[1] for xy_pair in props['data']],
                 'xaxis': 'x{}'.format(self.axis_ct),
@@ -298,97 +299,97 @@ class PlotlyRenderer(Renderer):
                           "coordinates!")
 
 
-    def draw_line(self, **props):
-        """Create a data dict for a line obj.
+    # def draw_line(self, **props):
+    #     """Create a data dict for a line obj.
+    #
+    #     props.keys() -- [
+    #     'coordinates',  ('data', 'axes', 'figure', or 'display')
+    #     'data',         (a list of xy pairs)
+    #     'mplobj',       (the matplotlib.lines.Line2D obj being rendered)
+    #     'label',        (the name of the Line2D obj being rendered)
+    #     'types',        (list of types ['marker', 'line'] none, one or both)
+    #     'style'        (style dict from utils.get_line_style, see below)
+    #     ]
+    #
+    #     props['style'].keys() -- [
+    #     'alpha',        (opacity of Line2D obj)
+    #     'color',        (color of the line if it exists, not the marker)
+    #     'linewidth',
+    #     'dasharray',    (code for linestyle, see DASH_MAP in tools.py)
+    #     'marker',       (the mpl marker symbol, see SYMBOL_MAP in tools.py)
+    #     'facecolor',    (color of the marker face)
+    #     'edgecolor',    (color of the marker edge)
+    #     'edgewidth',    (width of marker edge)
+    #     'markerpath',   (an SVG path for drawing the specified marker)
+    #     'zorder',       (viewing precedence when stacked with other objects)
+    #     ]
+    #
+    #     """
+    #     self.msg += "    Attempting to draw a line\n"
+    #     if props['coordinates'] == 'data':
+    #         trace = {
+    #             'mode': 'lines',
+    #             'x': [xy_pair[0] for xy_pair in props['data']],
+    #             'y': [xy_pair[1] for xy_pair in props['data']],
+    #             'xaxis': 'x{}'.format(self.axis_ct),
+    #             'yaxis': 'y{}'.format(self.axis_ct),
+    #             'line': {
+    #                 'opacity': props['style']['alpha'],
+    #                 'color': props['style']['color'],
+    #                 'width': props['style']['linewidth'],
+    #                 'dash': tools.convert_dash(props['style'][
+    #                     'dasharray'])
+    #             }
+    #         }
+    #         self.data += trace,
+    #         self.msg += "    Heck yeah, I drew that line\n"
+    #     else:
+    #         self.msg += "    Line didn't have 'data' coordinates, " \
+    #                     "not drawing\n"
+    #         warnings.warn("Bummer! Plotly can currently only draw Line2D "
+    #                       "objects from matplotlib that are in 'data' "
+    #                       "coordinates!")
 
-        props.keys() -- [
-        'coordinates',  ('data', 'axes', 'figure', or 'display')
-        'data',         (a list of xy pairs)
-        'mplobj',       (the matplotlib.lines.Line2D obj being rendered)
-        'label',        (the name of the Line2D obj being rendered)
-        'types',        (list of types ['marker', 'line'] none, one or both)
-        'style'        (style dict from utils.get_line_style, see below)
-        ]
-
-        props['style'].keys() -- [
-        'alpha',        (opacity of Line2D obj)
-        'color',        (color of the line if it exists, not the marker)
-        'linewidth',
-        'dasharray',    (code for linestyle, see DASH_MAP in tools.py)
-        'marker',       (the mpl marker symbol, see SYMBOL_MAP in tools.py)
-        'facecolor',    (color of the marker face)
-        'edgecolor',    (color of the marker edge)
-        'edgewidth',    (width of marker edge)
-        'markerpath',   (an SVG path for drawing the specified marker)
-        'zorder',       (viewing precedence when stacked with other objects)
-        ]
-
-        """
-        self.msg += "    Attempting to draw a line\n"
-        if props['coordinates'] == 'data':
-            trace = {
-                'mode': 'lines',
-                'x': [xy_pair[0] for xy_pair in props['data']],
-                'y': [xy_pair[1] for xy_pair in props['data']],
-                'xaxis': 'x{}'.format(self.axis_ct),
-                'yaxis': 'y{}'.format(self.axis_ct),
-                'line': {
-                    'opacity': props['style']['alpha'],
-                    'color': props['style']['color'],
-                    'width': props['style']['linewidth'],
-                    'dash': tools.convert_dash(props['style'][
-                        'dasharray'])
-                }
-            }
-            self.data += trace,
-            self.msg += "    Heck yeah, I drew that line\n"
-        else:
-            self.msg += "    Line didn't have 'data' coordinates, " \
-                        "not drawing\n"
-            warnings.warn("Bummer! Plotly can currently only draw Line2D "
-                          "objects from matplotlib that are in 'data' "
-                          "coordinates!")
-
-    def draw_markers(self, **props):
-        """Create a data dict for a line obj using markers.
-
-        Props dict (key: value):
-        'coordinates': 'data', 'axes', 'figure', or 'display'.
-        'data': a list of xy pairs.
-        'style': style dict from utils.get_marker_style
-        'mplobj': an mpl object, in this case the line object.
-
-        """
-        self.msg += "    Attempting to draw some markers\n"
-        if props['coordinates'] == 'data':
-            trace = {
-                'mode': 'markers',
-                'x': [xy_pair[0] for xy_pair in props['data']],
-                'y': [xy_pair[1] for xy_pair in props['data']],
-                'xaxis': 'x{}'.format(self.axis_ct),
-                'yaxis': 'y{}'.format(self.axis_ct),
-                'marker': {
-                    'opacity': props['style']['alpha'],
-                    'color': props['style']['facecolor'],
-                    'symbol': tools.convert_symbol(props['style'][
-                        'marker']),
-                    'line': {
-                        'color': props['style']['edgecolor'],
-                        'width': props['style']['edgewidth']
-                    }
-                }
-            }
-            if 'markersize' in props['style']:
-                trace['marker']['size'] = props['style']['markersize']
-            # not sure whether we need to incorporate style['markerpath']
-            self.data += trace,
-            self.msg += "    Heck yeah, I drew those markers\n"
-        else:
-            self.msg += "    Markers didn't have 'data' coordinates, " \
-                        "not drawing\n"
-            warnings.warn("Bummer! Plotly can currently only draw Line2D "
-                          "objects from matplotlib that are in 'data' "
-                          "coordinates!")
+    # def draw_markers(self, **props):
+    #     """Create a data dict for a line obj using markers.
+    #
+    #     Props dict (key: value):
+    #     'coordinates': 'data', 'axes', 'figure', or 'display'.
+    #     'data': a list of xy pairs.
+    #     'style': style dict from utils.get_marker_style
+    #     'mplobj': an mpl object, in this case the line object.
+    #
+    #     """
+    #     self.msg += "    Attempting to draw some markers\n"
+    #     if props['coordinates'] == 'data':
+    #         trace = {
+    #             'mode': 'markers',
+    #             'x': [xy_pair[0] for xy_pair in props['data']],
+    #             'y': [xy_pair[1] for xy_pair in props['data']],
+    #             'xaxis': 'x{}'.format(self.axis_ct),
+    #             'yaxis': 'y{}'.format(self.axis_ct),
+    #             'marker': {
+    #                 'opacity': props['style']['alpha'],
+    #                 'color': props['style']['facecolor'],
+    #                 'symbol': tools.convert_symbol(props['style'][
+    #                     'marker']),
+    #                 'line': {
+    #                     'color': props['style']['edgecolor'],
+    #                     'width': props['style']['edgewidth']
+    #                 }
+    #             }
+    #         }
+    #         if 'markersize' in props['style']:
+    #             trace['marker']['size'] = props['style']['markersize']
+    #         # not sure whether we need to incorporate style['markerpath']
+    #         self.data += trace,
+    #         self.msg += "    Heck yeah, I drew those markers\n"
+    #     else:
+    #         self.msg += "    Markers didn't have 'data' coordinates, " \
+    #                     "not drawing\n"
+    #         warnings.warn("Bummer! Plotly can currently only draw Line2D "
+    #                       "objects from matplotlib that are in 'data' "
+    #                       "coordinates!")
 
     def draw_image(self, **props):
         """Draw image.
@@ -452,13 +453,15 @@ class PlotlyRenderer(Renderer):
                     dpi=self.mpl_fig.get_dpi(),
                     aff=props['path_transforms'][0])
             }
-            markerprops = {
+            scatter_props = {
                 'coordinates': 'data',
                 'data': data,
-                'style': style,
+                'label': None,
+                'markerstyle': style,
+                'linestyle': None
             }
             self.msg += "    Drawing path collection as markers\n"
-            self.draw_markers(**markerprops)
+            self.draw_marked_line(**scatter_props)
         else:
             self.msg += "    Path collection not linked to 'data', " \
                         "not drawing\n"

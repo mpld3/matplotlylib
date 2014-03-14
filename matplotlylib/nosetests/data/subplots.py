@@ -8,6 +8,7 @@ BLANK_SUBPLOTS = {
                'height': 480,
                'margin': {'b': 47, 'l': 168, 'pad': 0, 'r': 63, 't': 47},
                'showlegend': False,
+               'hovermode': 'closest',
                'width': 640,
                'xaxis': {'anchor': 'y',
                          'zeroline': False,
