@@ -66,17 +66,19 @@ class PlotlyRenderer(Renderer):
         """
         self.msg += "Opening figure\n"
         self.mpl_fig = fig
-        self.layout['width'] = int(props['figwidth']*props['dpi'])
-        self.layout['height'] = int(props['figheight']*props['dpi'])
-        self.layout['autosize'] = False
+        self.layout = {
+            'width': int(props['figwidth']*props['dpi']),
+            'height': int(props['figheight']*props['dpi']),
+            'autosize': False,
+            'hovermode': 'closest'}
         self.mpl_x_bounds, self.mpl_y_bounds = tools.get_axes_bounds(fig)
-        self.layout['margin'] = {
+        margin = {
             'l': int(self.mpl_x_bounds[0]*self.layout['width']),
             'r': int((1-self.mpl_x_bounds[1])*self.layout['width']),
             't': int((1-self.mpl_y_bounds[1])*self.layout['height']),
             'b': int(self.mpl_y_bounds[0]*self.layout['height']),
-            'pad': 0
-        }
+            'pad': 0}
+        self.layout['margin'] = margin
 
     def close_figure(self, fig):
         """Closes figure by cleaning up data and layout dictionaries.
