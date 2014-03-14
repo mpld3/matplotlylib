@@ -135,7 +135,7 @@ class PlotlyRenderer(Renderer):
             ]
 
         """
-        self.msg += "Opening axes\n"
+        self.msg += "  Opening axes\n"
         self.axis_ct += 1
         layout = {
             'xaxis{}'.format(self.axis_ct): {
@@ -174,7 +174,7 @@ class PlotlyRenderer(Renderer):
         for patch_coll in self.current_ax_patches:
             self.draw_bar(patch_coll)
         self.current_ax_patches = []  # clear this for next axes obj
-        self.msg += "Closing axes\n"
+        self.msg += "  Closing axes\n"
 
     def draw_bar(self, patch_coll):
         """Draw a collection of similar patches as a bar chart.
@@ -190,12 +190,12 @@ class PlotlyRenderer(Renderer):
         """
         bardir = patch_coll[0]['bardir']
         if bardir == 'v':
-            self.msg += "Attempting to draw a vertical bar chart\n"
+            self.msg += "    Attempting to draw a vertical bar chart\n"
             patch_coll.sort(key=lambda b: b['x0'])
             x = [bar['x0']+(bar['x1']-bar['x0'])/2 for bar in patch_coll]
             y = [bar['y1'] for bar in patch_coll]
         else:
-            self.msg += "Attempting to draw a horizontal bar chart\n"
+            self.msg += "    Attempting to draw a horizontal bar chart\n"
             patch_coll.sort(key=lambda b: b['y0'])
             x = [bar['y0']+(bar['y1']-bar['y0'])/2 for bar in patch_coll]
             y = [bar['x1'] for bar in patch_coll]
@@ -213,10 +213,10 @@ class PlotlyRenderer(Renderer):
             'opacity': patch_coll[0]['alpha']
         }
         if len(data['x']) > 1:
-            self.msg += "Heck yeah, I drew that bar chart\n"
+            self.msg += "    Heck yeah, I drew that bar chart\n"
             self.data += data,
         else:
-            self.msg += "Bar chart not drawn\n"
+            self.msg += "    Bar chart not drawn\n"
             warnings.warn('found box chart data with length <= 1, '
                           'assuming data redundancy, not plotting.')
 
@@ -246,7 +246,7 @@ class PlotlyRenderer(Renderer):
         ]
 
         """
-        self.msg += "Attempting to draw a line\n"
+        self.msg += "    Attempting to draw a line\n"
         if props['coordinates'] == 'data':
             trace = {
                 'mode': 'lines',
@@ -263,9 +263,10 @@ class PlotlyRenderer(Renderer):
                 }
             }
             self.data += trace,
-            self.msg += "Heck yeah, I drew that line\n"
+            self.msg += "    Heck yeah, I drew that line\n"
         else:
-            self.msg += "Line didn't have 'data' coordinates, not drawing\n"
+            self.msg += "    Line didn't have 'data' coordinates, " \
+                        "not drawing\n"
             warnings.warn("Bummer! Plotly can currently only draw Line2D "
                           "objects from matplotlib that are in 'data' "
                           "coordinates!")
@@ -280,7 +281,7 @@ class PlotlyRenderer(Renderer):
         'mplobj': an mpl object, in this case the line object.
 
         """
-        self.msg += "Attempting to draw some markers\n"
+        self.msg += "    Attempting to draw some markers\n"
         if props['coordinates'] == 'data':
             trace = {
                 'mode': 'markers',
@@ -303,9 +304,10 @@ class PlotlyRenderer(Renderer):
                 trace['marker']['size'] = props['style']['markersize']
             # not sure whether we need to incorporate style['markerpath']
             self.data += trace,
-            self.msg += "Heck yeah, I drew those markers\n"
+            self.msg += "    Heck yeah, I drew those markers\n"
         else:
-            self.msg += "Markers didn't have 'data' coordinates, not drawing\n"
+            self.msg += "    Markers didn't have 'data' coordinates, " \
+                        "not drawing\n"
             warnings.warn("Bummer! Plotly can currently only draw Line2D "
                           "objects from matplotlib that are in 'data' "
                           "coordinates!")
@@ -316,8 +318,8 @@ class PlotlyRenderer(Renderer):
         Not implemented yet!
 
         """
-        self.msg += "Attempting to draw image\n"
-        self.msg += "Not drawing image\n"
+        self.msg += "    Attempting to draw image\n"
+        self.msg += "    Not drawing image\n"
         warnings.warn("Aw. Snap! You're gonna have to hold off on "
                       "the selfies for now. Plotly can't import "
                       "images from matplotlib yet!")
@@ -352,7 +354,7 @@ class PlotlyRenderer(Renderer):
         ]
 
         """
-        self.msg += "Attempting to draw a path collection\n"
+        self.msg += "    Attempting to draw a path collection\n"
         if props['offset_coordinates'] is 'data':
             alpha_face = props['styles']['facecolor'][0][3]
             rgb_face = [int(c*255)
@@ -377,10 +379,11 @@ class PlotlyRenderer(Renderer):
                 'data': data,
                 'style': style,
             }
-            self.msg += "Drawing path collection as markers\n"
+            self.msg += "    Drawing path collection as markers\n"
             self.draw_markers(**markerprops)
         else:
-            self.msg += "Path collection not linked to 'data', not drawing\n"
+            self.msg += "    Path collection not linked to 'data', " \
+                        "not drawing\n"
             warnings.warn("Dang! That path collection is out of this "
                           "world. I totally don't know what to do with "
                           "it yet! Plotly can only import path "
@@ -411,21 +414,19 @@ class PlotlyRenderer(Renderer):
         ]
 
         """
-        self.msg += "Attempting to draw a path\n"
+        self.msg += "    Attempting to draw a path\n"
         is_bar = tools.is_bar(**props)
         is_barh = tools.is_barh(**props)
         if is_bar:  # if we think it's a bar, add it!
-            self.msg += "Assuming path is a vertical bar\n"
+            self.msg += "      Assuming path is a vertical bar\n"
             bar = tools.make_bar(bardir='v', **props)
-            print 'a bar! ', bar
             self.file_bar(bar)
         if is_barh:  # perhaps a horizontal bar?
-            self.msg += "Assuming path is a horizontal bar\n"
+            self.msg += "      Assuming path is a horizontal bar\n"
             bar = tools.make_bar(bardir='h', **props)
-            print 'a barh! ', bar
             self.file_bar(bar)
         if not (is_bar or is_barh):
-            self.msg += "This path isn't a bar, not drawing\n"
+            self.msg += "    This path isn't a bar, not drawing\n"
             warnings.warn("I found a path object that I don't think is part "
                           "of a bar chart. Ignoring.")
 
@@ -454,9 +455,10 @@ class PlotlyRenderer(Renderer):
         ]
 
         """
-        self.msg += "Putting a bar into the proper bar collection\n"
+        self.msg += "        Putting a bar into the proper bar collection\n"
         if len(self.current_ax_patches) == 0:
-            self.msg += "Started a new bar collection with this bar\n"
+            self.msg += "          Started a new bar collection with this " \
+                        "bar\n"
             self.current_ax_patches.append([])
             self.current_ax_patches[-1] += bar,
         else:
@@ -465,9 +467,11 @@ class PlotlyRenderer(Renderer):
                 if tools.check_bar_match(patch_collection[0], bar):
                     match = True
                     patch_collection += bar,
-                    self.msg += "Filed bar into existing bar collection\n"
+                    self.msg += "          Filed bar into existing bar " \
+                                "collection\n"
             if not match:
-                self.msg += "Started a new bar collection with this bar\n"
+                self.msg += "          Started a new bar collection with " \
+                            "this bar\n"
                 self.current_ax_patches.append([])
                 self.current_ax_patches[-1] += bar,
 
@@ -500,22 +504,23 @@ class PlotlyRenderer(Renderer):
         ]
 
         """
-        self.msg += "Attempting to draw an mpl text object\n"
+        self.msg += "    Attempting to draw an mpl text object\n"
         if 'annotations' not in self.layout:
             self.layout['annotations'] = []
         if props['text_type'] == 'xlabel':
-            self.msg += "Text object is an xlabel\n"
+            self.msg += "      Text object is an xlabel\n"
             self.draw_xlabel(**props)
         elif props['text_type'] == 'ylabel':
-            self.msg += "Text object is a ylabel\n"
+            self.msg += "      Text object is a ylabel\n"
             self.draw_ylabel(**props)
         elif props['text_type'] == 'title':
-            self.msg += "Text object is a title\n"
+            self.msg += "      Text object is a title\n"
             self.draw_title(**props)
         else:  # just a regular text annotation...
-            self.msg += "Text object is a normal annotation\n"
+            self.msg += "      Text object is a normal annotation\n"
             if props['coordinates'] is not 'data':
-                self.msg += "Text object isn't linked to 'data' coordinates\n"
+                self.msg += "        Text object isn't linked to 'data' " \
+                            "coordinates\n"
                 x_px, y_px = props['mplobj'].get_transform().transform(
                     props['position'])
                 x, y = tools.display_to_paper(x_px, y_px, self.layout)
@@ -524,7 +529,8 @@ class PlotlyRenderer(Renderer):
                 xanchor = props['style']['halign']  # no difference here!
                 yanchor = tools.convert_va(props['style']['valign'])
             else:
-                self.msg += "Text object is linked to 'data' coordinates\n"
+                self.msg += "        Text object is linked to 'data' " \
+                            "coordinates\n"
                 x, y = props['position']
                 xref = 'x{}'.format(self.axis_ct)
                 yref = 'y{}'.format(self.axis_ct)
@@ -545,7 +551,7 @@ class PlotlyRenderer(Renderer):
                 'showarrow': False  # change this later?
             }
             self.layout['annotations'] += annotation,
-            self.msg += "Heck, yeah I drew that annotation\n"
+            self.msg += "    Heck, yeah I drew that annotation\n"
 
     def draw_title(self, **props):
         """Add a title to the current subplot in layout dictionary.
@@ -573,9 +579,10 @@ class PlotlyRenderer(Renderer):
         ]
 
         """
-        self.msg += "Attempting to draw a title\n"
+        self.msg += "        Attempting to draw a title\n"
         if len(self.mpl_fig.axes) > 1:
-            self.msg += "More than one subplot, adding title as annotation\n"
+            self.msg += "          More than one subplot, adding title as " \
+                        "annotation\n"
             x_px, y_px = props['mplobj'].get_transform().transform(props[
                 'position'])
             x, y = tools.display_to_paper(x_px, y_px, self.layout)
@@ -594,7 +601,8 @@ class PlotlyRenderer(Renderer):
             }
             self.layout['annotations'] += annotation,
         else:
-            self.msg += "Only one subplot found, adding as a plotly title\n"
+            self.msg += "          Only one subplot found, adding as a " \
+                        "plotly title\n"
             self.layout['title'] = props['text']
             titlefont = {'size': props['style']['fontsize'],
                          'color': props['style']['color']
@@ -624,7 +632,7 @@ class PlotlyRenderer(Renderer):
         ]
 
         """
-        self.msg += "Adding xlabel\n"
+        self.msg += "        Adding xlabel\n"
         self.layout['xaxis{}'.format(self.axis_ct)]['title'] = props['text']
         titlefont = {'size': props['style']['fontsize'],
                      'color': props['style']['color']
@@ -654,7 +662,7 @@ class PlotlyRenderer(Renderer):
         ]
 
         """
-        self.msg += "Adding ylabel\n"
+        self.msg += "        Adding ylabel\n"
         self.layout['yaxis{}'.format(self.axis_ct)]['title'] = props['text']
         titlefont = {'size': props['style']['fontsize'],
                      'color': props['style']['color']
@@ -754,4 +762,4 @@ def fig_to_plotly(fig, username=None, api_key=None, notebook=False,
     else:
         py.plot(renderer.data, layout=renderer.layout)
     if verbose:
-        print renderer.msg
+        return renderer.msg

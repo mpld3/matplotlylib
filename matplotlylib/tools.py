@@ -246,11 +246,8 @@ def get_rect_ymax(data):
 
 def is_bar(**props):
     """A test to decide whether a path is a bar from a vertical bar chart."""
-    # print '\n'
-    # print 'bar props: ', props['data']
     tests = []
     tests += get_rect_ymin(props['data']) == 0,
-    # print tests
     if all(tests):
         return True
     else:
@@ -259,11 +256,8 @@ def is_bar(**props):
 
 def is_barh(**props):
     """A test to decide whether a path is a bar from a horizontal bar chart."""
-    # print '\n'
-    # print 'barh props: ', props['data']
     tests = []
     tests += get_rect_xmin(props['data']) == 0,
-    # print tests
     if all(tests):
         return True
     else:
