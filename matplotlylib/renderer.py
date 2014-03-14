@@ -254,13 +254,16 @@ class PlotlyRenderer(Renderer):
         ]
 
         """
-        self.msg += "    Attempting to draw a line\n"
+        self.msg += "    Attempting to draw a line "
         line, marker = None, None
         if props['linestyle'] and props['markerstyle']:
+            self.msg += "... with both lines+markers\n"
             mode = "lines+markers"
         elif props['linestyle']:
+            self.msg += "... with just lines\n"
             mode = "lines"
         elif props['markerstyle']:
+            self.msg += "... with just markers\n"
             mode = "markers"
         if props['linestyle']:
             line = {
