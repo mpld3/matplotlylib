@@ -221,6 +221,83 @@ class PlotlyRenderer(Renderer):
             warnings.warn('found box chart data with length <= 1, '
                           'assuming data redundancy, not plotting.')
 
+    def draw_marked_line(self, **props):
+        """Create a data dict for a line obj.
+
+        props.keys() -- [
+        'coordinates',  ('data', 'axes', 'figure', or 'display')
+        'data',         (a list of xy pairs)
+        'markers',      (boolean, are there markers?)
+        'lines',        (boolean, are there lines?)
+        'mplobj',       (the matplotlib.lines.Line2D obj being rendered)
+        'label',        (the name of the Line2D obj being rendered)
+        'linestyle',    (style dict from utils.get_line_style, see below)
+        'markerstyle',  (style dict from utils.get_marker_style, see below)
+        ]
+
+        props['linestyle'].keys() -- [
+        'alpha',        (opacity of Line2D obj)
+        'color',        (color of the line if it exists, not the marker)
+        'linewidth',
+        'dasharray',    (code for linestyle, see DASH_MAP in tools.py)
+        'zorder',       (viewing precedence when stacked with other objects)
+        ]
+
+        props['markerstyle'].keys() -- [
+        'alpha',        (opacity of Line2D obj)
+        'marker',       (the mpl marker symbol, see SYMBOL_MAP in tools.py)
+        'facecolor',    (color of the marker face)
+        'edgecolor',    (color of the marker edge)
+        'edgewidth',    (width of marker edge)
+        'markerpath',   (an SVG path for drawing the specified marker)
+        'zorder',       (viewing precedence when stacked with other objects)
+        ]
+
+        """
+        self.msg += "    Attempting to draw a line\n"
+        line, marker = None, None
+        if props['lines'] and props['markers']:
+            mode = "lines+markers"
+        elif props['lines']:
+            mode = "lines"
+        elif props['markers']:
+            mode = "markers"
+        if props['lines']:
+            line = {
+                'opacity': props['linestyle']['alpha'],
+                'color': props['linestyle']['color'],
+                'width': props['linestyle']['linewidth'],
+                'dash': tools.convert_dash(props['linestyle']['dasharray'])
+            }
+        if props['markers']:
+            marker = {
+                'opacity': props['markerstyle']['alpha'],
+                'color': props['markerstyle']['facecolor'],
+                'symbol': tools.convert_symbol(props['markerstyle']['marker']),
+                'size': props['markerstyle']['markersize'],
+                'line': {
+                    'color': props['markerstyle']['edgecolor'],
+                    'width': props['markerstyle']['edgewidth']}}
+        if props['coordinates'] == 'data':
+            trace = {
+                'mode': mode,
+                'x': [xy_pair[0] for xy_pair in props['data']],
+                'y': [xy_pair[1] for xy_pair in props['data']],
+                'xaxis': 'x{}'.format(self.axis_ct),
+                'yaxis': 'y{}'.format(self.axis_ct),
+                'line': line,
+                'marker': marker,
+            }
+            self.data += trace,
+            self.msg += "    Heck yeah, I drew that line\n"
+        else:
+            self.msg += "    Line didn't have 'data' coordinates, " \
+                        "not drawing\n"
+            warnings.warn("Bummer! Plotly can currently only draw Line2D "
+                          "objects from matplotlib that are in 'data' "
+                          "coordinates!")
+
+
     def draw_line(self, **props):
         """Create a data dict for a line obj.
 
