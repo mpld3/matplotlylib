@@ -50,10 +50,9 @@ class PlotlyRenderer(Renderer):
     def open_figure(self, fig, props):
         """Creates a new figure by beginning to fill out layout dict.
 
-        Currently, margins are set to zero to reconcile differences between
-        mpl and plotly without complicated transforms. This will be changed
-        in future revisions. Autosize is set to false so that the figure will
-        mirror sizes set by mpl.
+        The 'autosize' key is set to false so that the figure will mirror
+        sizes set by mpl. The 'hovermode' key controls what shows up when you
+        mouse around a figure in plotly, it's set to show the 'closest' point.
 
         Positional agurments:
         fig -- an matplotlib.figure.Figure object.
