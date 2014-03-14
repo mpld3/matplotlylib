@@ -1,4 +1,4 @@
-from . nose_tools import run_fig, compare_dict
+from . nose_tools import run_fig
 from . data.data import *
 import matplotlib.pyplot as plt
 

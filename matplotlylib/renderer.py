@@ -4,8 +4,10 @@ Plotly Renderer.
 A renderer class to be used with an exporter for rendering matplotlib plots
 in Plotly.
 
-Attributes:
+Classes:
     PlotlyRenderer -- a renderer class to be used with an Exporter obj
+
+Functions:
     fig_to_plotly -- a function to send an mpl figure to Plotly
 
 """
@@ -53,6 +55,7 @@ class PlotlyRenderer(Renderer):
         """
         self.data = []
         self.layout = {}
+        self.mpl_fig = None
         self.current_ax_patches = []
         self.axis_ct = 0
         self.mpl_x_bounds = (0, 1)
@@ -66,7 +69,16 @@ class PlotlyRenderer(Renderer):
         in future revisions. Autosize is set to false so that the figure will
         mirror sizes set by mpl.
 
+        Positional agurments:
+        fig -- an matplotlib.figure.Figure object.
+        props.keys(): [
+            'figwidth',
+            'figheight',
+            'dpi'
+            ]
+
         """
+        self.mpl_fig = fig
         self.layout['width'] = int(props['figwidth']*props['dpi'])
         self.layout['height'] = int(props['figheight']*props['dpi'])
         self.layout['autosize'] = False
@@ -89,7 +101,7 @@ class PlotlyRenderer(Renderer):
         complete the entries. This method is called by an Exporter object.
 
         Positional arguments:
-        fig -- an mpl figure object.
+        fig -- a matplotlib.figure.Figure object.
 
         """
         tools.repair_data(self.data)
@@ -115,12 +127,24 @@ class PlotlyRenderer(Renderer):
         number of plots by incrementing the axis_ct attribute.
 
         Setting the proper plot domain in plotly is a bit tricky. Refer to
-        the documentation for tools.get_plotly_x_domain and
-        tools.get_plotly_y_domain.
+        the documentation for tools.convert_x_domain and
+        tools.convert_y_domain.
 
         Positional arguments:
         ax -- an mpl axes object. This will become a subplot in plotly.
-        props -- selected axes properties from the exporter (a dict).
+        props.keys() -- [
+            'axesbg',           (background color for axes obj)
+            'axesbgalpha',      (alpha, or opacity for background)
+            'bounds',           ((x0, y0, width, height) for axes)
+            'dynamic',          (zoom/pan-able?)
+            'axes',             (list: [xaxis, yaxis])
+            'xscale',           (log, linear, or date)
+            'yscale',
+            'xlim',             (range limits for x)
+            'ylim',
+            'xdomain'           (xdomain=xlim, unless it's a date)
+            'ydomain'
+            ]
 
         """
         self.axis_ct += 1
@@ -128,16 +152,16 @@ class PlotlyRenderer(Renderer):
             'xaxis{}'.format(self.axis_ct): {
                 'range': props['xlim'],
                 'showgrid': props['axes'][1]['grid']['gridOn'],
-                'domain': tools.get_plotly_x_domain(props['bounds'],
-                                                           self.mpl_x_bounds),
+                'domain': tools.convert_x_domain(props['bounds'],
+                                                 self.mpl_x_bounds),
                 'anchor': 'y{}'.format(self.axis_ct),
                 'zeroline': False
             },
             'yaxis{}'.format(self.axis_ct): {
                 'range': props['ylim'],
                 'showgrid': props['axes'][0]['grid']['gridOn'],
-                'domain': tools.get_plotly_y_domain(props['bounds'],
-                                                           self.mpl_y_bounds),
+                'domain': tools.convert_y_domain(props['bounds'],
+                                                 self.mpl_y_bounds),
                 'anchor': 'x{}'.format(self.axis_ct),
                 'zeroline': False
             }
@@ -175,42 +199,27 @@ class PlotlyRenderer(Renderer):
 
         """
         bardir = patch_coll[0]['bardir']
-        if bardir == 'v':
+        if bardir == 'h':
             patch_coll.sort(key=lambda b: b['x0'])
-            data = {
-                'type': 'bar',
-                'bardir': bardir,
-                'x': [bar['x0']+(bar['x1']-bar['x0'])/2
-                      for bar in patch_coll],
-                'y': [bar['y1'] for bar in patch_coll],
-                'xaxis': 'x{}'.format(self.axis_ct),
-                'yaxis': 'y{}'.format(self.axis_ct),
-                'marker': {
-                    'color': patch_coll[0]['facecolor'],
-                    'line': {
-                        'width': patch_coll[0]['edgewidth']
-                    }
-                },
-                'opacity': patch_coll[0]['alpha']
-            }
-        elif bardir == 'h':
+            x = [bar['x0']+(bar['x1']-bar['x0'])/2 for bar in patch_coll]
+            y = [bar['y1'] for bar in patch_coll]
+        else:
             patch_coll.sort(key=lambda b: b['y0'])
-            data = {
-                'type': 'bar',
-                'bardir': bardir,
-                'x': [bar['y0']+(bar['y1']-bar['y0'])/2
-                      for bar in patch_coll],
-                'y': [bar['x1'] for bar in patch_coll],
-                'xaxis': 'x{}'.format(self.axis_ct),
-                'yaxis': 'y{}'.format(self.axis_ct),
-                'marker': {
-                    'color': patch_coll[0]['facecolor'],
-                    'line': {
-                        'width': patch_coll[0]['edgewidth']
-                    }
-                },
-                'opacity': patch_coll[0]['alpha']
-            }
+            x = [bar['y0']+(bar['y1']-bar['y0'])/2 for bar in patch_coll]
+            y = [bar['x1'] for bar in patch_coll]
+        data = {
+            'type': 'bar',
+            'bardir': bardir,
+            'x': x,
+            'y': y,
+            'xaxis': 'x{}'.format(self.axis_ct),
+            'yaxis': 'y{}'.format(self.axis_ct),
+            'marker': {
+                'color': patch_coll[0]['facecolor'],
+                'line': {'width': patch_coll[0]['edgewidth']}
+            },
+            'opacity': patch_coll[0]['alpha']
+        }
         if len(data['x']) > 1:
             self.data += data,
         else:
@@ -220,11 +229,27 @@ class PlotlyRenderer(Renderer):
     def draw_line(self, **props):
         """Create a data dict for a line obj.
 
-        Props dict (key: value):
-        'coordinates': 'data', 'axes', 'figure', or 'display'.
-        'data': a list of xy pairs.
-        'style': style dict from utils.get_line_style
-        'mplobj': an mpl object, in this case the line object.
+        props.keys() -- [
+        'coordinates',  ('data', 'axes', 'figure', or 'display')
+        'data',         (a list of xy pairs)
+        'mplobj',       (the matplotlib.lines.Line2D obj being rendered)
+        'label',        (the name of the Line2D obj being rendered)
+        'types',        (list of types ['marker', 'line'] none, one or both)
+        'style'        (style dict from utils.get_line_style, see below)
+        ]
+
+        props['style'].keys() -- [
+        'alpha',        (opacity of Line2D obj)
+        'color',        (color of the line if it exists, not the marker)
+        'linewidth',
+        'dasharray',    (code for linestyle, see DASH_MAP in tools.py)
+        'marker',       (the mpl marker symbol, see SYMBOL_MAP in tools.py)
+        'facecolor',    (color of the marker face)
+        'edgecolor',    (color of the marker edge)
+        'edgewidth',    (width of marker edge)
+        'markerpath',   (an SVG path for drawing the specified marker)
+        'zorder',       (viewing precedence when stacked with other objects)
+        ]
 
         """
         if props['coordinates'] == 'data':
@@ -290,39 +315,64 @@ class PlotlyRenderer(Renderer):
         warnings.warn('draw_image not implemented yet, images will not show '
                       'up in plotly.')
 
-    def draw_path_collection(self, paths, path_coordinates, path_transforms,
-                             offsets, offset_coordinates, offset_order,
-                             styles, mplobj=None):
+    def draw_path_collection(self, **props):
         """Add a path collection to data list as a scatter plot.
 
         Current implementation defaults such collections as scatter plots.
+        Matplotlib supports collections that have many of the same parameters
+        in common like color, size, path, etc. However, they needn't all be
+        the same. Plotly does not currently support such functionality and
+        therefore, the style for the first object is taken and used to define
+        the remaining paths in the collection.
+
+        props.keys() -- [
+        'paths',                (structure: [vertices, path_code])
+        'path_coordinates',     ('data', 'axes', 'figure', or 'display')
+        'path_transforms',      (mpl transform, including Affine2D matrix)
+        'offsets',              (offset from axes, helpful if in 'data')
+        'offset_coordinates',   ('data', 'axes', 'figure', or 'display')
+        'offset_order',
+        'styles',               (style dict, see below)
+        'mplobj'                (the collection obj being drawn)
+        ]
+
+        props['styles'].keys() -- [
+        'linewidth',            (one or more linewidths)
+        'facecolor',            (one or more facecolors for path)
+        'edgecolor',            (one or more edgecolors for path)
+        'alpha',                (one or more opacites for path)
+        'zorder',               (precedence when stacked)
+        ]
 
         """
-        if offset_coordinates is 'data':
-            alpha_face = styles['facecolor'][0][3]
-            rgb_face = [int(c*255) for c in styles['facecolor'][0][:3]]
-            alpha_edge = styles['edgecolor'][0][3]
-            rgb_edge = [int(c*255) for c in styles['edgecolor'][0][:3]]
-            data = offsets
-            marker = tools.path_to_mpl_symbol(paths[0])
+        if props['offset_coordinates'] is 'data':
+            alpha_face = props['styles']['facecolor'][0][3]
+            rgb_face = [int(c*255)
+                        for c in props['styles']['facecolor'][0][:3]]
+            alpha_edge = props['styles']['edgecolor'][0][3]
+            rgb_edge = [int(c*255)
+                        for c in props['styles']['edgecolor'][0][:3]]
+            data = props['offsets']
+            marker = tools.convert_path(props['paths'][0])
             style = {
                 'alpha': alpha_face,
                 'facecolor': 'rgb({},{},{})'.format(*rgb_face),
                 'marker': marker,
                 'edgecolor': 'rgb({},{},{})'.format(*rgb_edge),
-                'edgewidth': styles['linewidth'][0],
-                'markersize': tools.get_marker_size(
-                    dpi=self._current_fig.get_dpi(), aff=path_transforms[0])
+                'edgewidth': props['styles']['linewidth'][0],
+                'markersize': tools.convert_affine_trans(
+                    dpi=self.mpl_fig.get_dpi(),
+                    aff=props['path_transforms'][0])
             }
-            props = {
+            markerprops = {
                 'coordinates': 'data',
                 'data': data,
                 'style': style,
             }
-            self.draw_markers(**props)
+            self.draw_markers(**markerprops)
         else:
-            warnings.warn('path collection is not linked to data, implemented '
-                          'of such path collections is not yet supported.')
+            warnings.warn('path collection is not linked to data, such path '
+                          'collections are not yet supported.')
 
     def draw_path(self, **props):
         """Draw path, currently only attempts to draw bar charts.
@@ -330,6 +380,23 @@ class PlotlyRenderer(Renderer):
         This function attempts to sort a given path into a collection of
         horizontal or vertical bar charts. Most of the actual code takes
         place in functions from tools.py.
+
+        props.keys() -- [
+        'data',         (a list of verticies for the path)
+        'coordinates',  ('data', 'axes', 'figure', or 'display')
+        'pathcodes',    (code for the path, structure: ['M', 'L', 'Z', etc.])
+        'style',        (style dict, see below)
+        'mplobj'        (the mpl path object)
+        ]
+
+        props['style'].keys() -- [
+        'alpha',        (opacity of path obj)
+        'edgecolor',
+        'facecolor',
+        'edgewidth',
+        'dasharray',    (style for path's enclosing line)
+        'zorder'        (precedence of obj when stacked)
+        ]
 
         """
         is_bar = tools.is_bar(**props)
@@ -352,6 +419,21 @@ class PlotlyRenderer(Renderer):
 
         Positional arguments:
         bar -- a bar dictionary created in tools.make_bar.py.
+
+        bar.keys() -- [
+        'bar',          (mpl path object)
+        'bardir',       (bar direction, 'v' or 'h' for horizontal or vertical)
+        'x0',           ([x0, y0] = bottom-left corner of rectangle)
+        'y0',
+        'x1',           ([x1, y1] = top-right corner of rectangle):
+        'y1',
+        'alpha',        (opacity of rectangle)
+        'edgecolor',    (boundary line color)
+        'facecolor',    (rectangle color)
+        'edgewidth',    (boundary line width)
+        'dasharray',    (linestyle for boundary line)
+        'zorder',       (precedence when stacked)
+        ]
 
         """
         if len(self.current_ax_patches) == 0:
@@ -376,11 +458,24 @@ class PlotlyRenderer(Renderer):
         Appropriate measures are taken to transform text locations to
         reference one of these two options.
 
-        Props dict (key: value):
-        'coordinates': reference for position, 'data', 'axes', 'figure', etc.
-        'position': x,y location of text in the given coordinates.
-        'style': style dict from utils.get_text_style.
-        'text': actual string content.
+        props.keys() -- [
+        'text',         (actual content string, not the text obj)
+        'position',     (an x, y pair, not an mpl Bbox)
+        'coordinates',  ('data', 'axes', 'figure', 'display')
+        'text_type',    ('title', 'xlabel', or 'ylabel')
+        'style',        (style dict, see below)
+        'mplobj'        (actual mpl text object)
+        ]
+
+        props['style'].keys() -- [
+        'alpha',        (opacity of text)
+        'fontsize',     (size in points of text)
+        'color',        (hex color)
+        'halign',       (horizontal alignment, 'left', 'center', or 'right')
+        'valign',       (vertical alignment, 'baseline', 'center', or 'top')
+        'rotation',
+        'zorder',       (precedence of text when stacked with other objs)
+        ]
 
         """
         if 'annotations' not in self.layout:
@@ -395,7 +490,7 @@ class PlotlyRenderer(Renderer):
             if props['coordinates'] is not 'data':
                 x_px, y_px = props['mplobj'].get_transform().transform(
                     props['position'])
-                x, y = tools.convert_to_paper(x_px, y_px, self.layout)
+                x, y = tools.display_to_paper(x_px, y_px, self.layout)
                 xref = 'paper'
                 yref = 'paper'
                 xanchor = props['style']['halign']  # no difference here!
@@ -428,11 +523,30 @@ class PlotlyRenderer(Renderer):
         If there exists more than a single plot in the figure, titles revert
         to 'page'-referenced annotations.
 
+        props.keys() -- [
+        'text',         (actual content string, not the text obj)
+        'position',     (an x, y pair, not an mpl Bbox)
+        'coordinates',  ('data', 'axes', 'figure', 'display')
+        'text_type',    ('title', 'xlabel', or 'ylabel')
+        'style',        (style dict, see below)
+        'mplobj'        (actual mpl text object)
+        ]
+
+        props['style'].keys() -- [
+        'alpha',        (opacity of text)
+        'fontsize',     (size in points of text)
+        'color',        (hex color)
+        'halign',       (horizontal alignment, 'left', 'center', or 'right')
+        'valign',       (vertical alignment, 'baseline', 'center', or 'top')
+        'rotation',
+        'zorder',       (precedence of text when stacked with other objs)
+        ]
+
         """
-        if len(self._current_fig.axes) > 1:
+        if len(self.mpl_fig.axes) > 1:
             x_px, y_px = props['mplobj'].get_transform().transform(props[
                 'position'])
-            x, y = tools.convert_to_paper(x_px, y_px, self.layout)
+            x, y = tools.display_to_paper(x_px, y_px, self.layout)
             annotation = {
                 'text': props['text'],
                 'font': {'color': props['style']['color'],
@@ -455,7 +569,28 @@ class PlotlyRenderer(Renderer):
             self.layout['titlefont'] = titlefont
 
     def draw_xlabel(self, **props):
-        """Add an xaxis label to the current subplot in layout dictionary."""
+        """Add an xaxis label to the current subplot in layout dictionary.
+
+        props.keys() -- [
+        'text',         (actual content string, not the text obj)
+        'position',     (an x, y pair, not an mpl Bbox)
+        'coordinates',  ('data', 'axes', 'figure', 'display')
+        'text_type',    ('title', 'xlabel', or 'ylabel')
+        'style',        (style dict, see below)
+        'mplobj'        (actual mpl text object)
+        ]
+
+        props['style'].keys() -- [
+        'alpha',        (opacity of text)
+        'fontsize',     (size in points of text)
+        'color',        (hex color)
+        'halign',       (horizontal alignment, 'left', 'center', or 'right')
+        'valign',       (vertical alignment, 'baseline', 'center', or 'top')
+        'rotation',
+        'zorder',       (precedence of text when stacked with other objs)
+        ]
+
+        """
         self.layout['xaxis{}'.format(self.axis_ct)]['title'] = props['text']
         titlefont = {'size': props['style']['fontsize'],
                      'color': props['style']['color']
@@ -463,7 +598,28 @@ class PlotlyRenderer(Renderer):
         self.layout['xaxis{}'.format(self.axis_ct)]['titlefont'] = titlefont
 
     def draw_ylabel(self, **props):
-        """Add a yaxis label to the current subplot in layout dictionary."""
+        """Add a yaxis label to the current subplot in layout dictionary.
+
+        props.keys() -- [
+        'text',         (actual content string, not the text obj)
+        'position',     (an x, y pair, not an mpl Bbox)
+        'coordinates',  ('data', 'axes', 'figure', 'display')
+        'text_type',    ('title', 'xlabel', or 'ylabel')
+        'style',        (style dict, see below)
+        'mplobj'        (actual mpl text object)
+        ]
+
+        props['style'].keys() -- [
+        'alpha',        (opacity of text)
+        'fontsize',     (size in points of text)
+        'color',        (hex color)
+        'halign',       (horizontal alignment, 'left', 'center', or 'right')
+        'valign',       (vertical alignment, 'baseline', 'center', or 'top')
+        'rotation',
+        'zorder',       (precedence of text when stacked with other objs)
+        ]
+
+        """
         self.layout['yaxis{}'.format(self.axis_ct)]['title'] = props['text']
         titlefont = {'size': props['style']['fontsize'],
                      'color': props['style']['color']
@@ -487,8 +643,7 @@ class PlotlyRenderer(Renderer):
 
     def strip_style(self):
         for data_dict in self.data:
-            tools.walk_and_strip(data_dict, tools.SAFE_KEYS[
-               'data'])
+            tools.walk_and_strip(data_dict, tools.SAFE_KEYS['data'])
             tools.clean_dict(data_dict)
         tools.walk_and_strip(self.layout, tools.SAFE_KEYS[
             'layout'])
