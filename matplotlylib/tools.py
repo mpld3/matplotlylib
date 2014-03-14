@@ -1,41 +1,7 @@
 """
-Tool module for working with plotly's JSON dict and mpl conversions.
+Tools
 
-Functions:
-    check_bar_match(old_bar, new_bar) -- returns true if match
-    clean_dict(node, parent=None, node_key=None) -- removes nonsense values
-    convert_affine_trans(dpi=None, aff=None) -- ... to a marker size!
-    convert_dash(mpl_dash) -- mpl to plotly dash symbol conversion
-    convert_path(path) -- mpl path to plotly marker symbol
-    convert_symbol(mpl_symbol) -- mpl to plotly marker symbol conversion
-    convert_va(mpl_va) -- mpl to HTML vertical alignment conversion
-    convert_x_domain(mpl_plot_bounds, mpl_max_x_bounds) -- see doc
-    convert_y_domain(mpl_plot_bounds, mpl_max_y_bounds) -- see doc
-    display_to_paper(x, y, layout) -- mpl 'display' to plotly 'papaer' coords
-    get_axes_bounds(fig) -- return full mpl axes span
-    get_rect_xmin(data) -- get xmin from 4 points
-    get_rect_xmax(data) -- get xmax from 4 points
-    get_rect_ymin(data) -- get ymin from 4 points
-    get_rect_ymax(data) -- get ymax from 4 points
-    is_bar(**props) -- returns true if a path obj may be a bar
-    is_barh(**props) -- returns true if a path obj may be a horizontal bar
-    make_bar(**props) -- make intermediate bar dict for easier comparisons
-    repair_data(data) -- see doc
-    repair_key(d, key_path_tup, fix) -- see doc
-    repair_layout(layout) -- see doc
-    repair_val(d, key_path_tup, repair_dict) -- see doc
-    walk_and_strip(node, safe_keys) -- delete all but some special dict keys
-
-Constants:
-    DASH_MAP -- for convert_dash(mpl_dash)
-    PATH_MAP -- for convert_path(path)
-    SYMBOL_MAP -- convert_symbol(mpl_symbol)
-    VA_MAP -- for convert_va(mpl_va)
-    DATA_KEY_REPAIRS -- for repair_data(data)
-    DATA_VAL_REPAIRS -- for repair_data(data)
-    LAYOUT_KEY_REPAIRS -- repair_layout(layout)
-    LAYOUT_VAL_REPAIRS -- repair_layout(layout)
-    SAFE_KEYS -- for walk_and_strip(node, safe_keys)
+A module for working with plotly's JSON dict and mpl conversions.
 
 """
 

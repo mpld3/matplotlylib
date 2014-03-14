@@ -1,14 +1,9 @@
 """
-Plotly Renderer.
+Renderer Module
 
-A renderer class to be used with an exporter for rendering matplotlib plots
-in Plotly.
-
-Classes:
-    PlotlyRenderer -- a renderer class to be used with an Exporter obj
-
-Functions:
-    fig_to_plotly -- a function to send an mpl figure to Plotly
+This module defines the PlotlyRenderer class and a single function,
+fig_to_plotly, which is intended to be the main way that user's will interact
+with the matplotlylib package.
 
 """
 import warnings
@@ -19,31 +14,19 @@ from . import tools
 class PlotlyRenderer(Renderer):
     """A renderer class inheriting from base for rendering mpl plots in plotly.
 
-    Attributes:
-        username -- plotly username, required for fig_to_plotly (default None)
-        api_key -- api key for given plotly username (defualt None)
-        data -- a list of data dictionaries to be passed to plotly
-        layout -- a layout dictionary to be passed to plotly
-        axis_ct -- a reference to the number of axes rendered from mpl fig
+    A renderer class to be used with an exporter for rendering matplotlib
+    plots in Plotly. This module defines the PlotlyRenderer class which handles
+    the creation of the JSON structures that get sent to plotly.
 
-    Inherited Methods (see renderers.base):
-        ax_zoomable(ax) -- static method
-        ax_has_xgrid(ax) -- static method
-        ax_has_ygrid(ax) -- static method
-        current_ax_zoomable(self) -- property
-        current_ax_has_xgrid(self) -- property
-        current_ax_has_ygrid(self) -- property
-        draw_figure(self, fig, props) -- context manager
-        draw_axes(self, ax, props) -- context manager
+    All class attributes available are defined in __init__().
 
-    Reimplemented Methods (see renderers.base):
-        open_figure(self, fig, props)
-        close_figure(self, fig)
-        open_axes(self, ax, props)
-        close_axes(self, ax)
-        draw_line(self, **props)
-        draw_markers(self, **props)
-        draw_text(self, **props)
+    Basic Usage:
+
+    # (mpl code) #
+    fig = gcf()
+    renderer = PlotlyRenderer(fig)
+    exporter = Exporter(renderer)
+    exporter.run(fig)  # ... et voila
 
     """
     def __init__(self):
@@ -51,6 +34,8 @@ class PlotlyRenderer(Renderer):
 
         PlotlyRenderer obj is called on by an Exporter object to draw
         matplotlib objects like figures, axes, text, etc.
+
+        All class attributes are listed here in the __init__ method.
 
         """
         self.data = []
@@ -60,6 +45,7 @@ class PlotlyRenderer(Renderer):
         self.axis_ct = 0
         self.mpl_x_bounds = (0, 1)
         self.mpl_y_bounds = (0, 1)
+        self.msg = "Initialized PlotlyRenderer\n"
 
     def open_figure(self, fig, props):
         """Creates a new figure by beginning to fill out layout dict.
@@ -78,6 +64,7 @@ class PlotlyRenderer(Renderer):
             ]
 
         """
+        self.msg += "Opening figure\n"
         self.mpl_fig = fig
         self.layout['width'] = int(props['figwidth']*props['dpi'])
         self.layout['height'] = int(props['figheight']*props['dpi'])
@@ -115,6 +102,7 @@ class PlotlyRenderer(Renderer):
             pass
         tools.clean_dict(self.layout)
         self.layout['showlegend'] = False
+        self.msg += "Closing figure\n"
 
     def open_axes(self, ax, props):
         """Setup a new axes object (subplot in plotly).
@@ -147,6 +135,7 @@ class PlotlyRenderer(Renderer):
             ]
 
         """
+        self.msg += "Opening axes\n"
         self.axis_ct += 1
         layout = {
             'xaxis{}'.format(self.axis_ct): {
@@ -185,6 +174,7 @@ class PlotlyRenderer(Renderer):
         for patch_coll in self.current_ax_patches:
             self.draw_bar(patch_coll)
         self.current_ax_patches = []  # clear this for next axes obj
+        self.msg += "Closing axes\n"
 
     def draw_bar(self, patch_coll):
         """Draw a collection of similar patches as a bar chart.
@@ -199,11 +189,13 @@ class PlotlyRenderer(Renderer):
 
         """
         bardir = patch_coll[0]['bardir']
-        if bardir == 'h':
+        if bardir == 'v':
+            self.msg += "Attempting to draw a vertical bar chart\n"
             patch_coll.sort(key=lambda b: b['x0'])
             x = [bar['x0']+(bar['x1']-bar['x0'])/2 for bar in patch_coll]
             y = [bar['y1'] for bar in patch_coll]
         else:
+            self.msg += "Attempting to draw a horizontal bar chart\n"
             patch_coll.sort(key=lambda b: b['y0'])
             x = [bar['y0']+(bar['y1']-bar['y0'])/2 for bar in patch_coll]
             y = [bar['x1'] for bar in patch_coll]
@@ -221,8 +213,10 @@ class PlotlyRenderer(Renderer):
             'opacity': patch_coll[0]['alpha']
         }
         if len(data['x']) > 1:
+            self.msg += "Heck yeah, I drew that bar chart\n"
             self.data += data,
         else:
+            self.msg += "Bar chart not drawn\n"
             warnings.warn('found box chart data with length <= 1, '
                           'assuming data redundancy, not plotting.')
 
@@ -252,6 +246,7 @@ class PlotlyRenderer(Renderer):
         ]
 
         """
+        self.msg += "Attempting to draw a line\n"
         if props['coordinates'] == 'data':
             trace = {
                 'mode': 'lines',
@@ -268,8 +263,12 @@ class PlotlyRenderer(Renderer):
                 }
             }
             self.data += trace,
+            self.msg += "Heck yeah, I drew that line\n"
         else:
-            pass
+            self.msg += "Line didn't have 'data' coordinates, not drawing\n"
+            warnings.warn("Bummer! Plotly can currently only draw Line2D "
+                          "objects from matplotlib that are in 'data' "
+                          "coordinates!")
 
     def draw_markers(self, **props):
         """Create a data dict for a line obj using markers.
@@ -281,6 +280,7 @@ class PlotlyRenderer(Renderer):
         'mplobj': an mpl object, in this case the line object.
 
         """
+        self.msg += "Attempting to draw some markers\n"
         if props['coordinates'] == 'data':
             trace = {
                 'mode': 'markers',
@@ -303,8 +303,12 @@ class PlotlyRenderer(Renderer):
                 trace['marker']['size'] = props['style']['markersize']
             # not sure whether we need to incorporate style['markerpath']
             self.data += trace,
+            self.msg += "Heck yeah, I drew those markers\n"
         else:
-            pass
+            self.msg += "Markers didn't have 'data' coordinates, not drawing\n"
+            warnings.warn("Bummer! Plotly can currently only draw Line2D "
+                          "objects from matplotlib that are in 'data' "
+                          "coordinates!")
 
     def draw_image(self, **props):
         """Draw image.
@@ -312,8 +316,11 @@ class PlotlyRenderer(Renderer):
         Not implemented yet!
 
         """
-        warnings.warn('draw_image not implemented yet, images will not show '
-                      'up in plotly.')
+        self.msg += "Attempting to draw image\n"
+        self.msg += "Not drawing image\n"
+        warnings.warn("Aw. Snap! You're gonna have to hold off on "
+                      "the selfies for now. Plotly can't import "
+                      "images from matplotlib yet!")
 
     def draw_path_collection(self, **props):
         """Add a path collection to data list as a scatter plot.
@@ -345,6 +352,7 @@ class PlotlyRenderer(Renderer):
         ]
 
         """
+        self.msg += "Attempting to draw a path collection\n"
         if props['offset_coordinates'] is 'data':
             alpha_face = props['styles']['facecolor'][0][3]
             rgb_face = [int(c*255)
@@ -369,10 +377,14 @@ class PlotlyRenderer(Renderer):
                 'data': data,
                 'style': style,
             }
+            self.msg += "Drawing path collection as markers\n"
             self.draw_markers(**markerprops)
         else:
-            warnings.warn('path collection is not linked to data, such path '
-                          'collections are not yet supported.')
+            self.msg += "Path collection not linked to 'data', not drawing\n"
+            warnings.warn("Dang! That path collection is out of this "
+                          "world. I totally don't know what to do with "
+                          "it yet! Plotly can only import path "
+                          "collections linked to 'data' coordinates")
 
     def draw_path(self, **props):
         """Draw path, currently only attempts to draw bar charts.
@@ -399,17 +411,23 @@ class PlotlyRenderer(Renderer):
         ]
 
         """
+        self.msg += "Attempting to draw a path\n"
         is_bar = tools.is_bar(**props)
         is_barh = tools.is_barh(**props)
         if is_bar:  # if we think it's a bar, add it!
+            self.msg += "Assuming path is a vertical bar\n"
             bar = tools.make_bar(bardir='v', **props)
+            print 'a bar! ', bar
             self.file_bar(bar)
         if is_barh:  # perhaps a horizontal bar?
+            self.msg += "Assuming path is a horizontal bar\n"
             bar = tools.make_bar(bardir='h', **props)
+            print 'a barh! ', bar
             self.file_bar(bar)
         if not (is_bar or is_barh):
+            self.msg += "This path isn't a bar, not drawing\n"
             warnings.warn("I found a path object that I don't think is part "
-                          "of a bar chart. Ignoring...")
+                          "of a bar chart. Ignoring.")
 
     def file_bar(self, bar):
         """Puts a given bar into an appropriate bar or barh collection.
@@ -436,7 +454,9 @@ class PlotlyRenderer(Renderer):
         ]
 
         """
+        self.msg += "Putting a bar into the proper bar collection\n"
         if len(self.current_ax_patches) == 0:
+            self.msg += "Started a new bar collection with this bar\n"
             self.current_ax_patches.append([])
             self.current_ax_patches[-1] += bar,
         else:
@@ -445,7 +465,9 @@ class PlotlyRenderer(Renderer):
                 if tools.check_bar_match(patch_collection[0], bar):
                     match = True
                     patch_collection += bar,
+                    self.msg += "Filed bar into existing bar collection\n"
             if not match:
+                self.msg += "Started a new bar collection with this bar\n"
                 self.current_ax_patches.append([])
                 self.current_ax_patches[-1] += bar,
 
@@ -478,16 +500,22 @@ class PlotlyRenderer(Renderer):
         ]
 
         """
+        self.msg += "Attempting to draw an mpl text object\n"
         if 'annotations' not in self.layout:
             self.layout['annotations'] = []
         if props['text_type'] == 'xlabel':
+            self.msg += "Text object is an xlabel\n"
             self.draw_xlabel(**props)
         elif props['text_type'] == 'ylabel':
+            self.msg += "Text object is a ylabel\n"
             self.draw_ylabel(**props)
         elif props['text_type'] == 'title':
+            self.msg += "Text object is a title\n"
             self.draw_title(**props)
         else:  # just a regular text annotation...
+            self.msg += "Text object is a normal annotation\n"
             if props['coordinates'] is not 'data':
+                self.msg += "Text object isn't linked to 'data' coordinates\n"
                 x_px, y_px = props['mplobj'].get_transform().transform(
                     props['position'])
                 x, y = tools.display_to_paper(x_px, y_px, self.layout)
@@ -496,6 +524,7 @@ class PlotlyRenderer(Renderer):
                 xanchor = props['style']['halign']  # no difference here!
                 yanchor = tools.convert_va(props['style']['valign'])
             else:
+                self.msg += "Text object is linked to 'data' coordinates\n"
                 x, y = props['position']
                 xref = 'x{}'.format(self.axis_ct)
                 yref = 'y{}'.format(self.axis_ct)
@@ -516,6 +545,7 @@ class PlotlyRenderer(Renderer):
                 'showarrow': False  # change this later?
             }
             self.layout['annotations'] += annotation,
+            self.msg += "Heck, yeah I drew that annotation\n"
 
     def draw_title(self, **props):
         """Add a title to the current subplot in layout dictionary.
@@ -543,7 +573,9 @@ class PlotlyRenderer(Renderer):
         ]
 
         """
+        self.msg += "Attempting to draw a title\n"
         if len(self.mpl_fig.axes) > 1:
+            self.msg += "More than one subplot, adding title as annotation\n"
             x_px, y_px = props['mplobj'].get_transform().transform(props[
                 'position'])
             x, y = tools.display_to_paper(x_px, y_px, self.layout)
@@ -562,6 +594,7 @@ class PlotlyRenderer(Renderer):
             }
             self.layout['annotations'] += annotation,
         else:
+            self.msg += "Only one subplot found, adding as a plotly title\n"
             self.layout['title'] = props['text']
             titlefont = {'size': props['style']['fontsize'],
                          'color': props['style']['color']
@@ -591,6 +624,7 @@ class PlotlyRenderer(Renderer):
         ]
 
         """
+        self.msg += "Adding xlabel\n"
         self.layout['xaxis{}'.format(self.axis_ct)]['title'] = props['text']
         titlefont = {'size': props['style']['fontsize'],
                      'color': props['style']['color']
@@ -620,6 +654,7 @@ class PlotlyRenderer(Renderer):
         ]
 
         """
+        self.msg += "Adding ylabel\n"
         self.layout['yaxis{}'.format(self.axis_ct)]['title'] = props['text']
         titlefont = {'size': props['style']['fontsize'],
                      'color': props['style']['color']
@@ -635,6 +670,7 @@ class PlotlyRenderer(Renderer):
         lets plotly choose them instead of mpl.
 
         """
+        self.msg += "Resizing figure, deleting keys from layout\n"
         for key in ['width', 'height', 'autosize', 'margin']:
             try:
                 del self.layout[key]
@@ -642,6 +678,7 @@ class PlotlyRenderer(Renderer):
                 pass
 
     def strip_style(self):
+        self.msg += "Stripping mpl style, deleting keys from data and layout\n"
         for data_dict in self.data:
             tools.walk_and_strip(data_dict, tools.SAFE_KEYS['data'])
             tools.clean_dict(data_dict)
@@ -656,7 +693,7 @@ class PlotlyRenderer(Renderer):
 
 
 def fig_to_plotly(fig, username=None, api_key=None, notebook=False,
-                  resize=False, strip_style=False):
+                  resize=False, strip_style=False, verbose=False):
     """Convert a matplotlib figure to plotly dictionary and send.
 
     All available information about matplotlib visualizations are stored
@@ -716,3 +753,5 @@ def fig_to_plotly(fig, username=None, api_key=None, notebook=False,
         return py.iplot(renderer.data, layout=renderer.layout)
     else:
         py.plot(renderer.data, layout=renderer.layout)
+    if verbose:
+        print renderer.msg
