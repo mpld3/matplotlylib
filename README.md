@@ -7,9 +7,11 @@
 About 
 -----
 
-[Plotly](https://plot.ly) is an online collaborative data analysis and graphing tool. The matplotlylib package allows users to export matplotlib figures to plotly. Plotly figures are shared, tracked, and edited all online and the data is always accessible from the graph.
+[Plotly](https://plot.ly) is an online collaborative data analysis and graphing tool. The matplotlylib package allows users to export matplotlib figures to plotly. Plotly figures are shared, tracked, and edited all online and the data is always accessible from the graph. The goal of this project is to offer users a simple, one-liner to send a matplotlib figure to plotly from Python:
 
-Find out more, sign up, and start sharing by visiting us at [https://plot.ly](https://plot.ly/).
+`fig_to_plotly(fig, username, api_key)`
+
+That's it. Find out more, sign up, and start sharing by visiting us at [https://plot.ly](https://plot.ly/).
 
 Install
 -------
@@ -30,7 +32,7 @@ The second instruction will install the matplotlylib package, which now has mple
 
 Gallery
 -------
-Check out the [IPython Notebook](http://nbviewer.ipython.org/github/mpld3/matplotlylib/blob/master/notebooks/Plotly%20and%20mpld3.ipynb), or have a look at our [plotly profile](https://plot.ly/~mpld3/) where you can open and edit all of the examples.
+Check out the [IPython Notebook](http://nbviewer.ipython.org/github/mpld3/matplotlylib/blob/master/notebooks/Plotly%20and%20mpld3.ipynb), or have a look at our [plotly profile](https://plot.ly/~mpld3/) where you can open and edit all of the examples. If the NB is loading slowing, checkout our static site hosted on GitHub page at [http://plotly.github.io/matplotlylib/](http://plotly.github.io/matplotlylib/).
 
 ### Lines
 ---------
