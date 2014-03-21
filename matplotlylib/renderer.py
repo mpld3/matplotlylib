@@ -10,6 +10,8 @@ import warnings
 from . mplexporter import Exporter, Renderer
 from . import tools
 
+from matplotlib.patches import FancyBboxPatch # used for legends
+
 
 class PlotlyRenderer(Renderer):
     """A renderer class inheriting from base for rendering mpl plots in plotly.
@@ -106,7 +108,6 @@ class PlotlyRenderer(Renderer):
         except KeyError:
             pass
         tools.clean_dict(self.layout)
-        self.layout['showlegend'] = False
         self.msg += "Closing figure\n"
         self.mpl_fig = None
 
@@ -159,7 +160,8 @@ class PlotlyRenderer(Renderer):
                 'domain': tools.convert_y_domain(props['bounds'],
                                                  self.mpl_y_bounds),
                 'anchor': 'x{}'.format(self.axis_ct),
-                'zeroline': False
+                'zeroline': False,
+                'showlegend': False  # default behaviour, may overide later
             }
         }
         for key, value in layout.items():
@@ -185,8 +187,34 @@ class PlotlyRenderer(Renderer):
         self.mpl_ax = None
 
     def open_legend(self, legend, props):
+        self.layout['showlegend']=True
+        self.layout['legend'] = {}
         self.msg += "    Opening legend\n"
         self.mpl_legend = legend
+        found = False
+        for data in props['handles']:
+            try:
+                data_no = self.data_index[data]
+                self.data[data_no]['showlegend']=True
+                self.msg += "      Added item to legend\n"
+                found=True
+            except KeyError:
+                pass
+        if found:
+            [[x0, y0], [x1, y1]] = legend.get_window_extent().get_points()
+            x, y = tools.display_to_paper(x1, y1, self.layout)
+            self.layout['legend']['xanchor'] = 'right'
+            self.layout['legend']['yanchor'] = 'top'
+            self.layout['legend']['x'] = x
+            self.layout['legend']['y'] = y
+            self.layout['legend']['y'] = y
+            for child in legend.get_children():
+                if isinstance(child, FancyBboxPatch):
+                    rgb_face = [int(c*255) for c in child.get_facecolor()[:3]]
+                    alpha = child.get_facecolor()[-1]
+                    bg = 'rgb({},{},{})'.format(*rgb_face)
+                    self.layout['legend']['bgcolor'] = bg
+                    self.layout['legend']['opacity'] = alpha
 
     def close_legend(self, legend):
         self.msg += "    Closing legend\n"
@@ -231,7 +259,8 @@ class PlotlyRenderer(Renderer):
                 'color': patch_coll[0]['facecolor'],
                 'line': {'width': patch_coll[0]['edgewidth']}
             },
-            'opacity': patch_coll[0]['alpha']
+            'opacity': patch_coll[0]['alpha'],
+            'showlegend': False
         }
         if len(data['x']) > 1:
             self.msg += "    Heck yeah, I drew that bar chart\n"
@@ -317,6 +346,7 @@ class PlotlyRenderer(Renderer):
                     'yaxis': 'y{}'.format(self.axis_ct),
                     'line': line,
                     'marker': marker,
+                    'showlegend': False
                 }
                 self.data += trace,
                 self.index_data(obj=props['mplobj'])

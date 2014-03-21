@@ -191,6 +191,14 @@ def display_to_paper(x, y, layout):
     the location (x, y) = (figwidth*dpi, figheight*dpi). Here, figwidth and
     figheight are in inches and dpi are the dots per inch resolution.
 
+    Positional agruments:
+    x -- x coordinate in pixels
+    y -- y coordinate in pixels
+    layout -- layout for plotly rendering, required for non-zero margins
+
+    Returns:
+    x_paper, y_paper -- display coords converted to plotly's papaer coords
+
     """
     num_x = x - layout['margin']['l']
     den_x = layout['width'] - (layout['margin']['l'] + layout['margin']['r'])
