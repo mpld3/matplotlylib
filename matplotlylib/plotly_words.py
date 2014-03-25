@@ -7,253 +7,269 @@ functionality here, only some definitions for use with the plotly_words module.
 
 """
 
-DATA_VALID_KEYS = [
-    'textfont',
-    'name',
-    'marker',
-    'mode',
-    'y',
-    'x',
-    'line',
-    'type',
-    'error_y',
-    'opacity',
-    'bardir'
-]
+INFO = dict(
 
-DATA_SAFE_KEYS = [
-    'name',
-    'y',
-    'x',
-    'type',
-    'bardir'
-]
+    base=dict(
+        kind='base',
+        safe=[],
+        valid=[],
+        repair_vals=dict(),
+        repair_keys=dict()
+    ),
 
-LAYOUT_VALID_KEYS = [
-    'title',
-    'xaxis',
-    'yaxis',
-    'legend',
-    'width',
-    'height',
-    'autosize',
-    'margin',
-    'paper_bgcolor',
-    'plot_bgcolor',
-    'barmode',
-    'bargap',
-    'bargroupgap',
-    'boxmode',
-    'boxgap',
-    'boxgroupgap',
-    'font',
-    'titlefont',
-    'dragmode',
-    'hovermode',
-    'separators',
-    'hidesources',
-    'showlegend',
-    'annotations'
-]
+    data=dict(
+        kind='data',
+        safe=['name',
+              'y',
+              'x',
+              'type',
+              'bardir'],
+        valid=['textfont',
+               'name',
+               'marker',
+               'mode',
+               'y',
+               'x',
+               'line',
+               'type',
+               'error_y',
+               'opacity',
+               'bardir'],
+        repair_vals=dict(xaxis=['x1', None],
+                         yaxis=['y1', None]),
+        repair_keys=dict()
+    ),
 
-LAYOUT_SAFE_KEYS = [
-    'title',
-    'width',
-    'height',
-    'autosize'
-]
+    layout=dict(
+        kind='layout',
+        safe=['title',
+              'width',
+              'height',
+              'autosize'],
+        valid=['title',
+               'xaxis',
+               'yaxis',
+               'legend',
+               'width',
+               'height',
+               'autosize',
+               'margin',
+               'paper_bgcolor',
+               'plot_bgcolor',
+               'barmode',
+               'bargap',
+               'bargroupgap',
+               'boxmode',
+               'boxgap',
+               'boxgroupgap',
+               'font',
+               'titlefont',
+               'dragmode',
+               'hovermode',
+               'separators',
+               'hidesources',
+               'showlegend',
+               'annotations'],
+        repair_vals=dict(),
+        repair_keys=dict(xaxis1='xaxis',
+                         yaxis1='yaxis')
+    ),
 
-XAXIS_VALID_KEYS = [
-    'range',
-    'type',
-    'showline',
-    'mirror',
-    'linecolor',
-    'linewidth',
-    'tick0',
-    'dtick',
-    'ticks',
-    'ticklen',
-    'tickcolor',
-    'nticks',
-    'showticklabels',
-    'tickangle',
-    'exponentformat',
-    'showexponent',
-    'showgrid',
-    'gridcolor',
-    'gridwidth',
-    'autorange',
-    'rangemode',
-    'autotick',
-    'zeroline',
-    'zerolinecolor',
-    'zerolinewidth',
-    'titlefont',
-    'tickfont',
-    'overlaying',
-    'domain',
-    'position',
-    'anchor',
-    'title'
-]
+    xaxis=dict(
+        kind='xaxis',
+        safe=['range',
+              'type',
+              'showticklabels',
+              'exponentformat',
+              'zeroline',
+              'overlaying',
+              'domain',
+              'position',
+              'anchor',
+              'title'],
+        valid=['range',
+               'type',
+               'showline',
+               'mirror',
+               'linecolor',
+               'linewidth',
+               'tick0',
+               'dtick',
+               'ticks',
+               'ticklen',
+               'tickcolor',
+               'nticks',
+               'showticklabels',
+               'tickangle',
+               'exponentformat',
+               'showexponent',
+               'showgrid',
+               'gridcolor',
+               'gridwidth',
+               'autorange',
+               'rangemode',
+               'autotick',
+               'zeroline',
+               'zerolinecolor',
+               'zerolinewidth',
+               'titlefont',
+               'tickfont',
+               'overlaying',
+               'domain',
+               'position',
+               'anchor',
+               'title'],
+        repair_vals=dict(anchor=['y1', 'y']),
+        repair_keys=dict()
+    ),
 
-XAXIS_SAFE_KEYS = [
-    'range',
-    'type',
-    'showticklabels',
-    'exponentformat',
-    'zeroline',
-    'overlaying',
-    'domain',
-    'position',
-    'anchor',
-    'title'
-]
+    yaxis=dict(
+        kind='yaxis',
+        safe=['range',
+              'type',
+              'showticklabels',
+              'exponentformat',
+              'zeroline',
+              'overlaying',
+              'domain',
+              'position',
+              'anchor',
+              'title'],
+        valid=['range',
+               'type',
+               'showline',
+               'mirror',
+               'linecolor',
+               'linewidth',
+               'tick0',
+               'dtick',
+               'ticks',
+               'ticklen',
+               'tickcolor',
+               'nticks',
+               'showticklabels',
+               'tickangle',
+               'exponentformat',
+               'showexponent',
+               'showgrid',
+               'gridcolor',
+               'gridwidth',
+               'autorange',
+               'rangemode',
+               'autotick',
+               'zeroline',
+               'zerolinecolor',
+               'zerolinewidth',
+               'titlefont',
+               'tickfont',
+               'overlaying',
+               'domain',
+               'position',
+               'anchor',
+               'title'],
+        repair_vals=dict(anchor=['x1', 'x']),
+        repair_keys=dict()
+    ),
 
-YAXIS_VALID_KEYS = [
-    'range',
-    'type',
-    'showline',
-    'mirror',
-    'linecolor',
-    'linewidth',
-    'tick0',
-    'dtick',
-    'ticks',
-    'ticklen',
-    'tickcolor',
-    'nticks',
-    'showticklabels',
-    'tickangle',
-    'exponentformat',
-    'showexponent',
-    'showgrid',
-    'gridcolor',
-    'gridwidth',
-    'autorange',
-    'rangemode',
-    'autotick',
-    'zeroline',
-    'zerolinecolor',
-    'zerolinewidth',
-    'titlefont',
-    'tickfont',
-    'overlaying',
-    'domain',
-    'position',
-    'anchor',
-    'title'
-]
+    marker=dict(
+        kind='marker',
+        safe=['symbol',
+              'size'],
+        valid=['symbol',
+               'line',
+               'size',
+               'color',
+               'opacity'],
+        repair_vals=dict(),
+        repair_keys=dict()
+    ),
 
-YAXIS_SAFE_KEYS = [
-    'range',
-    'type',
-    'showticklabels',
-    'exponentformat',
-    'zeroline',
-    'overlaying',
-    'domain',
-    'position',
-    'anchor',
-    'title'
-]
+    legend=dict(
+        kind='legend',
+        safe=['traceorder'],
+        valid=['bgcolor',
+               'bordercolor',
+               'font',
+               'traceorder'],
+        repair_vals=dict(),
+        repair_keys=dict()
+    ),
 
-MARKER_VALID_KEYS = [
-    'symbol',
-    'line',
-    'size',
-    'color',
-    'opacity'
-]
+    line=dict(
+        kind='line',
+        safe=['dash'],
+        valid=['dash',
+               'color',
+               'width',
+               'opacity'],
+        repair_vals=dict(),
+        repair_keys=dict()
+    ),
 
-MARKER_SAFE_KEYS = [
-    'symbol',
-    'size'
-]
+    margin=dict(
+        kind='margin',
+        safe=['l',
+               'r',
+               'b',
+               't',
+               'pad'],
+        valid=['l',
+               'r',
+               'b',
+               't',
+               'pad'],
+        repair_vals=dict(),
+        repair_keys=dict()
+    ),
 
-LEGEND_VALID_KEYS = [
-    'bgcolor',
-    'bordercolor',
-    'font',
-    'traceorder'
-]
+    font=dict(
+        kind='font',
+        safe=[],
+        valid=['color',
+               'size',
+               'family'],
+        repair_vals=dict(),
+        repair_keys=dict()
+    ),
 
-LEGEND_SAFE_KEYS = [
-    'traceorder'
-]
+    annotation=dict(
+        kind='annotation',
+        safe=['text',
+              'xref',
+              'yref',
+              'showarrow',
+              'align',
+              'xanchor',
+              'yanchor',
+              'ay',
+              'ax',
+              'y',
+              'x'],
+        valid=['text',
+               'bordercolor',
+               'borderwidth',
+               'borderpad',
+               'bgcolor',
+               'xref',
+               'yref',
+               'showarrow',
+               'arrowwidth',
+               'arrowcolor',
+               'arrowhead',
+               'arrowsize',
+               'tag',
+               'font',
+               'opacity',
+               'align',
+               'xanchor',
+               'yanchor',
+               'ay',
+               'ax',
+               'y',
+               'x'],
+        repair_vals=dict(xref=['x1', 'x'],
+                         yref=['y1', 'y']),
+        repair_keys=dict()
+    )
 
-LINE_VALID_KEYS = [
-    'dash',
-    'color',
-    'width',
-    'opacity'
-]
-
-LINE_SAFE_KEYS = [
-    'dash'
-]
-
-MARGIN_VALID_KEYS = [
-    'l',
-    'r',
-    'b',
-    't',
-    'pad'
-]
-
-MARGIN_SAFE_KEYS = [
-    'l',
-    'r',
-    'b',
-    't',
-    'pad'
-]
-
-FONT_VALID_KEYS = [
-    'color',
-    'size',
-    'family'
-]
-
-FONT_SAFE_KEYS = []
-
-ANNOTATION_VALID_KEYS = [
-    'text',
-    'bordercolor',
-    'borderwidth',
-    'borderpad',
-    'bgcolor',
-    'xref',
-    'yref',
-    'showarrow',
-    'arrowwidth',
-    'arrowcolor',
-    'arrowhead',
-    'arrowsize',
-    'tag',
-    'font',
-    'opacity',
-    'align',
-    'xanchor',
-    'yanchor',
-    'ay',
-    'ax',
-    'y',
-    'x'
-]
-
-ANNOTATION_SAFE_KEYS = [
-    'text',
-    'xref',
-    'yref',
-    'showarrow',
-    'align',
-    'xanchor',
-    'yanchor',
-    'ay',
-    'ax',
-    'y',
-    'x'
-]
-
+)

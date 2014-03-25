@@ -2,12 +2,15 @@
 plotly_objs
 ===========
 
-A module that understands plotly language and can deal manage the json
-structures.
+A module that understands plotly language and can manage the json
+structures. This module defines two classes: PlotlyList and PlotlyDict. The
+former is a generic container inheriting from `list` and the latter inherits
+from `dict` and is used to contain all information for each part of a plotly
+figure.
 
 """
 
-from . plotly_words import *
+from . plotly_words import INFO
 
 
 class PlotlyList(list):
@@ -35,6 +38,7 @@ class PlotlyList(list):
         args -- a list of positional arguments of any length
 
         """
+        super(PlotlyList, self).__init__(self)
         for arg in args:
             self.append(arg)
 
@@ -57,10 +61,10 @@ class PlotlyList(list):
             l.append(pd.get_json())
         return l
 
-    def strip(self):
+    def strip_style(self):
         """Strip style information from each of the PlotlyList's entries."""
         for pd in self:
-            pd.strip()
+            pd.strip_style()
 
     def clean(self):
         """Remove any entries that are NoneType from PlotlyLists's entries."""
@@ -89,39 +93,38 @@ class PlotlyDict(dict):
     A PlotlyDict can be instantiated like any dict object. This class offers
     some useful recursive methods that can be used by higher-level subclasses
     and containers so long as all plot objects are instantiated as a subclass
-    of PlotlyDict.
+    of PlotlyDict. Each PlotlyDict should be instantiated with a `kind`
+    keyword argument. This defines the special _info dictionary for the
+    object.
 
     Any available methods that hold for a dict hold for a PlotlyDict.
 
     """
-    def __init__(self, _safe_keys=[], _valid_keys=[],
-                 _repair_keys={}, _repair_vals={} , **kwargs):
-        kwargs['_safe_keys'] = _safe_keys
-        kwargs['_valid_keys'] = _valid_keys
-        kwargs['_repair_keys'] = _repair_keys
-        kwargs['_repair_vals'] = _repair_vals
+    def __init__(self, kind=None, **kwargs):
+        if kind is not None:
+            kwargs['_info'] = INFO[kind]
+        else:
+            kwargs['_info'] = INFO['base']
         super(PlotlyDict, self).__init__(**kwargs)
 
     def __str__(self):
         return str(self.get_json())
 
-    def _pop_keys(self):
-        """Remove non-functional keys from PlotlyDict.
+    def _pop_info(self):
+        """Remove `private` info from PlotlyDict.
 
         This is only temporary and should be used only by the PlotlyDict class.
 
         """
-        return [self.pop('_safe_keys'), self.pop('_valid_keys'),
-                self.pop('_repair_keys'), self.pop('_repair_vals')]
+        return self.pop('_info')
 
-    def _push_keys(self, _safe_keys, _valid_keys, _repair_keys, _repair_vals):
-        """Add non-functional keys back to PlotlyDict.
+    def _push_info(self, _info):
+        """Add `private` info back to PlotlyDict.
 
         This is only temporary and should be used only by the PlotlyDict class.
 
         """
-        self['_safe_keys'], self['_valid_keys'] = _safe_keys, _valid_keys
-        self['_repair_keys'], self['_repair_vals'] = _repair_keys, _repair_vals
+        self['_info'] = _info
 
     def get_json(self):
         """Get a JSON representation for the PlotlyDict.
@@ -133,33 +136,34 @@ class PlotlyDict(dict):
 
         """
         d = dict()
-        _safe_keys, _valid_keys, _repair_keys, _repair_vals = self._pop_keys()
+        _info = self._pop_info()
         for key, val in self.items():
             try:
                 d[key] = val.get_json()
             except AttributeError:
                 d[key] = val
-        self._push_keys(_safe_keys, _valid_keys, _repair_keys, _repair_vals)
+        self._push_info(_info)
         return d
 
-    def strip(self):
+    def strip_style(self):
         """Strip style from the current representation of the plotly figure.
 
         All PlotlyDicts and PlotlyLists are guaranteed to survive the
         stripping process, though they made be left empty. This is allowable.
         The other attributes that will not be deleted are stored in the
-        plotly_words module under *_SAFE_KEYS.
+        plotly_words module under INFO['*']['safe'] for each `kind` of plotly
+        object.
 
         """
-        _safe_keys, _valid_keys, _repair_keys, _repair_vals = self._pop_keys()
+        _info = self._pop_info()
         keys = self.keys()
         for key in keys:
             try:
-                self[key].strip()
+                self[key].strip_style()
             except AttributeError:
-                if key not in _safe_keys:
+                if key not in _info['safe']:
                     del self[key]
-        self._push_keys(_safe_keys, _valid_keys, _repair_keys, _repair_vals)
+        self._push_info(_info)
 
     def clean(self):
         """Recursively rid PlotlyDict of `None` entries.
@@ -180,193 +184,62 @@ class PlotlyDict(dict):
     def check(self):
         """Recursively check the validity of the keys in a PlotlyDict.
 
-        The valid keys are stored in plotly_word.py under *_VALID_KEYS for
-        each plotly object.
+        The valid keys are stored in plotly_word.py under INFO['*']['valid']
+        for each `kind` of plotly object.
 
         """
-        _safe_keys, _valid_keys, _repair_keys, _repair_vals = self._pop_keys()
+        _info = self._pop_info()
         for key, val in self.items():
             try:
                 val.check()
             except AttributeError:
-                if key not in _valid_keys:
+                if key not in _info['valid']:
                     raise KeyError("Invalid key, {}, for type {}".format(
                         key, type(self)))
-        self._push_keys(_safe_keys, _valid_keys, _repair_keys, _repair_vals)
+        self._push_info(_info)
 
     def repair_vals(self):
         """Repair known common value problems.
 
-        Plotly objects that require this functionality define a private
-        `_repair_vals` dictionary at the top of the class. The structure of
-        these dictionaries are as follows:
+        Plotly objects that require this functionality define a
+        non-trivial INFO['*']['repair_vals'] `dict` in plotly_words.py. The
+        structure of these dictionaries are as follows:
 
-        _repair_vals = dict(key_1=[suspect_val_1, correct_val_1], ...)
+        INFO['*']['repair_vals'] =
+            dict(key_1=[suspect_val_1, correct_val_1], ...)
 
         """
+        _info = self._pop_info()
         for key in self:
             try:
                 self[key].repair_vals()
             except AttributeError:
                 try:
-                    if self[key] == self['_repair_vals'][key][0]:
-                        self[key] = self['_repair_vals'][key][1]
+                    if self[key] == _info['repair_vals'][key][0]:
+                        self[key] = _info['repair_vals'][key][1]
                 except KeyError:
                     pass
+        self._push_info(_info)
         self.clean()
 
     def repair_keys(self):
         """Repair known common key problems.
 
         Plotly objects that require this functionality define a private
-        `_repair_keys` dictionary at the top of the class. The structure of
-        these dictionaries are as follows:
+        non-trivial INFO['*']['repair_keys'] `dict` in plotly_words.py. The
+        structure of these dictionaries are as follows:
 
-        _repair_keys = dict(suspect_key_1=correct_key_1, ...)
+        INFO['*']['repair_keys'] = dict(suspect_key_1=correct_key_1, ...)
 
         """
+        _info = self._pop_info()
         for key in self:
-            if key in self['_repair_keys']:
-                self[self['_repair_keys'][key]] = self.pop(key)
+            if key in _info['repair_keys']:
+                self[_info['repair_keys'][key]] = self.pop(key)
         for key in self:
             try:
                 self[key].repair_keys()
             except AttributeError:
                 pass
+        self._push_info(_info)
         self.clean()
-
-
-class Data(PlotlyDict):
-    """A general data class for plotly.
-
-    This class is meant to hold any type of allowable plotly data.
-
-    """
-    _repair_vals = dict(xaxis=['x1', None], yaxis=['y1', None])
-
-    def __init__(self, **kwargs):
-        super(Data, self).__init__(_safe_keys=DATA_SAFE_KEYS,
-                                   _valid_keys=DATA_VALID_KEYS,
-                                   _repair_vals=Data._repair_vals, **kwargs)
-
-
-class Marker(PlotlyDict):
-    """A marker class for creating markers on plots."""
-    def __init__(self, **kwargs):
-        super(Marker, self).__init__(_safe_keys=MARKER_SAFE_KEYS,
-                                     _valid_keys=MARKER_VALID_KEYS, **kwargs)
-
-
-class Annotation(PlotlyDict):
-    """An annotation holder for making notes on figures."""
-    pass
-
-
-class Line(PlotlyDict):
-    """A line class for scatter lines or marker lines."""
-    def __init__(self, **kwargs):
-        super(Line, self).__init__(_safe_keys=LINE_SAFE_KEYS,
-                                   _valid_keys=LINE_VALID_KEYS, **kwargs)
-
-
-class Layout(PlotlyDict):
-    """A layout class for holding figure layout information."""
-    _repair_keys = dict(xaxis1='xaxis', yaxis1='yaxis')
-
-    def __init__(self, **kwargs):
-        super(Layout, self).__init__(_safe_keys=LAYOUT_SAFE_KEYS,
-                                     _valid_keys=LAYOUT_VALID_KEYS,
-                                     _repair_keys=Layout._repair_keys, **kwargs)
-
-
-class DataList(PlotlyList):
-    """A simple list container for holding Data objects."""
-    pass
-
-
-class AnnotationList(PlotlyList):
-    """A simple list container for holding Annotation objects."""
-    pass
-
-
-class Annotation(PlotlyDict):
-    """An dictionary for and annotation, note, to be placed on a figure."""
-    _repair_vals = dict(xref=['x1', 'x'], yref=['y1', 'y'])
-
-    def __init__(self, **kwargs):
-        super(Annotation, self).__init__(_safe_keys=ANNOTATION_SAFE_KEYS,
-                                         _valid_keys=ANNOTATION_VALID_KEYS,
-                                         _repair_vals=Annotation._repair_vals,
-                                         **kwargs)
-
-
-class XAxis(PlotlyDict):
-    """An xaxis object to be used in a Layout object."""
-    _repair_vals = dict(anchor=['y1', 'y'])
-
-    def __init__(self, **kwargs):
-        super(XAxis, self).__init__(_safe_keys=XAXIS_SAFE_KEYS,
-                                    _valid_keys=XAXIS_VALID_KEYS,
-                                    _repair_vals=XAxis._repair_vals, **kwargs)
-
-
-class YAxis(PlotlyDict):
-    """An xaxis object to be used in a Layout object."""
-    _repair_vals = dict(anchor=['x1', 'x'])
-
-    def __init__(self, **kwargs):
-        super(YAxis, self).__init__(_safe_keys=YAXIS_SAFE_KEYS,
-                                    _valid_keys=YAXIS_VALID_KEYS,
-                                    _repair_vals=YAxis._repair_vals, **kwargs)
-
-
-class Margin(PlotlyDict):
-    """An object to contain figure margin information."""
-
-    def __init__(self, **kwargs):
-        super(Margin, self).__init__(_safe_keys=MARGIN_SAFE_KEYS,
-                                     _valid_keys=MARGIN_VALID_KEYS, **kwargs)
-
-
-class Font(PlotlyDict):
-    """A general font class for storing font information."""
-    def __init__(self, **kwargs):
-        super(Font, self).__init__(_safe_keys=FONT_SAFE_KEYS,
-                                   _valid_keys=FONT_VALID_KEYS, **kwargs)
-
-
-class Legend(PlotlyDict):
-    """An object to contain legend information for a figure."""
-    pass
-
-
-class PlotlyFig(object):
-    """An experimental interface for adding data and format information."""
-    def __init__(self, data=None, layout=None):
-        if isinstance(data, PlotlyList):
-            self.data = data
-        elif isinstance(data, PlotlyDict):
-            self.data = PlotlyList(data)
-        elif isinstance(data, (dict, type(None))):
-            self.data = Data(data)
-        else:
-            raise ValueError("data must be a PlotlyList, PlotlyDict, dict, "
-                             "or None")
-        if isinstance(layout, Layout):
-            self.layout = layout
-        elif isinstance(layout, (dict, type(None))):
-            self.layout = Layout(layout)
-        else:
-            raise ValueError("layout must be a Layout, dict, or None")
-
-    def add_line(self, data):
-        """Not yet implemented."""
-        pass
-
-    def add_bar(self, data):
-        """Not yet implemented."""
-        pass
-
-    def __str__(self):
-        """Not yet implemented."""
-        pass
