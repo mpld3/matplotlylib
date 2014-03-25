@@ -56,4 +56,6 @@ def run_fig(fig):
     renderer = PlotlyRenderer()
     exporter = Exporter(renderer)
     exporter.run(fig)
+    renderer.data = renderer.data.get_json()
+    renderer.layout = renderer.layout.get_json()
     return renderer
