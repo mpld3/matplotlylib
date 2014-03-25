@@ -11,6 +11,8 @@ from . mplexporter import Exporter, Renderer
 from . import tools
 from . plotly_objs import *
 
+# from matplotlib.patches import FancyBboxPatch # used for legends
+
 
 class PlotlyRenderer(Renderer):
     """A renderer class inheriting from base for rendering mpl plots in plotly.
@@ -44,8 +46,12 @@ class PlotlyRenderer(Renderer):
         # self.data = []
         # self.layout = {}
         self.mpl_fig = None
+        self.mpl_ax = None
+        self.mpl_legend = None
+        self.data_index = {}
         self.current_ax_patches = []
         self.axis_ct = 0
+        self.data_ct = 0
         self.mpl_x_bounds = (0, 1)
         self.mpl_y_bounds = (0, 1)
         self.msg = "Initialized PlotlyRenderer\n"
@@ -107,6 +113,7 @@ class PlotlyRenderer(Renderer):
         self.layout.check()
         self.layout['showlegend'] = False
         self.msg += "Closing figure\n"
+        self.mpl_fig = None
 
     def open_axes(self, ax, props):
         """Setup a new axes object (subplot in plotly).
@@ -140,6 +147,7 @@ class PlotlyRenderer(Renderer):
 
         """
         self.msg += "  Opening axes\n"
+        self.mpl_ax = ax
         self.axis_ct += 1
         xaxis = PlotlyDict(
             kind='xaxis',
@@ -176,6 +184,46 @@ class PlotlyRenderer(Renderer):
             self.draw_bar(patch_coll)
         self.current_ax_patches = []  # clear this for next axes obj
         self.msg += "  Closing axes\n"
+        self.mpl_ax = None
+
+    def open_legend(self, legend, props):
+        self.layout['showlegend']=True
+        self.layout['legend'] = {}
+        self.msg += "    Opening legend\n"
+        self.mpl_legend = legend
+        found = False
+        for data in props['handles']:
+            try:
+                data_no = self.data_index[data]
+                self.data[data_no]['showlegend']=True
+                self.msg += "      Added item to legend\n"
+                found=True
+            except KeyError:
+                pass
+        if found:
+            [[x0, y0], [x1, y1]] = legend.get_window_extent().get_points()
+            x, y = tools.display_to_paper(x1, y1, self.layout)
+            self.layout['legend']['xanchor'] = 'right'
+            self.layout['legend']['yanchor'] = 'top'
+            self.layout['legend']['x'] = x
+            self.layout['legend']['y'] = y
+            self.layout['legend']['y'] = y
+            # for child in legend.get_children():
+            #     if isinstance(child, FancyBboxPatch):
+            #         rgb_face = [int(c*255) for c in child.get_facecolor()[:3]]
+            #         alpha = child.get_facecolor()[-1]
+            #         bg = 'rgb({},{},{})'.format(*rgb_face)
+            #         self.layout['legend']['bgcolor'] = bg
+            #         self.layout['legend']['opacity'] = alpha
+
+    def close_legend(self, legend):
+        self.msg += "    Closing legend\n"
+        self.mpl_legend = None
+
+    def index_data(self, obj=None):
+        if obj is not None:
+            self.data_index[obj] = self.data_ct
+        self.data_ct += 1
 
     def draw_bar(self, patch_coll):
         """Draw a collection of similar patches as a bar chart.
@@ -213,11 +261,13 @@ class PlotlyRenderer(Renderer):
                 kind='marker',
                 color=patch_coll[0]['facecolor'],
                 line=PlotlyDict(kind='line', width=patch_coll[0]['edgewidth'])
-            )
+            ),
+            showlegend=False
         )
         if len(data['x']) > 1:
             self.msg += "    Heck yeah, I drew that bar chart\n"
             self.data += data,
+            self.index_data()
         else:
             self.msg += "    Bar chart not drawn\n"
             warnings.warn('found box chart data with length <= 1, '
@@ -257,149 +307,61 @@ class PlotlyRenderer(Renderer):
 
         """
         self.msg += "    Attempting to draw a line "
-        line, marker = None, None
-        if props['linestyle'] and props['markerstyle']:
-            self.msg += "... with both lines+markers\n"
-            mode = "lines+markers"
-        elif props['linestyle']:
-            self.msg += "... with just lines\n"
-            mode = "lines"
-        elif props['markerstyle']:
-            self.msg += "... with just markers\n"
-            mode = "markers"
-        if props['linestyle']:
-            line = PlotlyDict(
-                kind='line',
-                opacity=props['linestyle']['alpha'],
-                color=props['linestyle']['color'],
-                width=props['linestyle']['linewidth'],
-                dash=tools.convert_dash(props['linestyle']['dasharray'])
-            )
-        if props['markerstyle']:
-            marker = PlotlyDict(
-                kind='marker',
-                opacity=props['markerstyle']['alpha'],
-                color=props['markerstyle']['facecolor'],
-                symbol=tools.convert_symbol(props['markerstyle']['marker']),
-                size=props['markerstyle']['markersize'],
-                line=PlotlyDict(
-                    kind='line',
-                    color=props['markerstyle']['edgecolor'],
-                    width=props['markerstyle']['edgewidth']
-                )
-            )
-        if props['coordinates'] == 'data':
-            data = PlotlyDict(
-                kind='data',
-                mode=mode,
-                name=props['label'],
-                x=[xy_pair[0] for xy_pair in props['data']],
-                y=[xy_pair[1] for xy_pair in props['data']],
-                xaxis='x{}'.format(self.axis_ct),
-                yaxis='y{}'.format(self.axis_ct),
-                line=line,
-                marker=marker,
-            )
-            self.data += data,
-            self.msg += "    Heck yeah, I drew that line\n"
+        if self.mpl_legend is not None:
+            self.msg += "      Ignoring draw_marked_line from legend\n"
         else:
-            self.msg += "    Line didn't have 'data' coordinates, " \
-                        "not drawing\n"
-            warnings.warn("Bummer! Plotly can currently only draw Line2D "
-                          "objects from matplotlib that are in 'data' "
-                          "coordinates!")
-
-    # def draw_line(self, **props):
-    #     """Create a data dict for a line obj.
-    #
-    #     props.keys() -- [
-    #     'coordinates',  ('data', 'axes', 'figure', or 'display')
-    #     'data',         (a list of xy pairs)
-    #     'mplobj',       (the matplotlib.lines.Line2D obj being rendered)
-    #     'label',        (the name of the Line2D obj being rendered)
-    #     'types',        (list of types ['marker', 'line'] none, one or both)
-    #     'style'        (style dict from utils.get_line_style, see below)
-    #     ]
-    #
-    #     props['style'].keys() -- [
-    #     'alpha',        (opacity of Line2D obj)
-    #     'color',        (color of the line if it exists, not the marker)
-    #     'linewidth',
-    #     'dasharray',    (code for linestyle, see DASH_MAP in tools.py)
-    #     'marker',       (the mpl marker symbol, see SYMBOL_MAP in tools.py)
-    #     'facecolor',    (color of the marker face)
-    #     'edgecolor',    (color of the marker edge)
-    #     'edgewidth',    (width of marker edge)
-    #     'markerpath',   (an SVG path for drawing the specified marker)
-    #     'zorder',       (viewing precedence when stacked with other objects)
-    #     ]
-    #
-    #     """
-    #     self.msg += "    Attempting to draw a line\n"
-    #     if props['coordinates'] == 'data':
-    #         trace = {
-    #             'mode': 'lines',
-    #             'x': [xy_pair[0] for xy_pair in props['data']],
-    #             'y': [xy_pair[1] for xy_pair in props['data']],
-    #             'xaxis': 'x{}'.format(self.axis_ct),
-    #             'yaxis': 'y{}'.format(self.axis_ct),
-    #             'line': {
-    #                 'opacity': props['style']['alpha'],
-    #                 'color': props['style']['color'],
-    #                 'width': props['style']['linewidth'],
-    #                 'dash': tools.convert_dash(props['style'][
-    #                     'dasharray'])
-    #             }
-    #         }
-    #         self.data += trace,
-    #         self.msg += "    Heck yeah, I drew that line\n"
-    #     else:
-    #         self.msg += "    Line didn't have 'data' coordinates, " \
-    #                     "not drawing\n"
-    #         warnings.warn("Bummer! Plotly can currently only draw Line2D "
-    #                       "objects from matplotlib that are in 'data' "
-    #                       "coordinates!")
-
-    # def draw_markers(self, **props):
-    #     """Create a data dict for a line obj using markers.
-    #
-    #     Props dict (key: value):
-    #     'coordinates': 'data', 'axes', 'figure', or 'display'.
-    #     'data': a list of xy pairs.
-    #     'style': style dict from utils.get_marker_style
-    #     'mplobj': an mpl object, in this case the line object.
-    #
-    #     """
-    #     self.msg += "    Attempting to draw some markers\n"
-    #     if props['coordinates'] == 'data':
-    #         trace = {
-    #             'mode': 'markers',
-    #             'x': [xy_pair[0] for xy_pair in props['data']],
-    #             'y': [xy_pair[1] for xy_pair in props['data']],
-    #             'xaxis': 'x{}'.format(self.axis_ct),
-    #             'yaxis': 'y{}'.format(self.axis_ct),
-    #             'marker': {
-    #                 'opacity': props['style']['alpha'],
-    #                 'color': props['style']['facecolor'],
-    #                 'symbol': tools.convert_symbol(props['style'][
-    #                     'marker']),
-    #                 'line': {
-    #                     'color': props['style']['edgecolor'],
-    #                     'width': props['style']['edgewidth']
-    #                 }
-    #             }
-    #         }
-    #         if 'markersize' in props['style']:
-    #             trace['marker']['size'] = props['style']['markersize']
-    #         # not sure whether we need to incorporate style['markerpath']
-    #         self.data += trace,
-    #         self.msg += "    Heck yeah, I drew those markers\n"
-    #     else:
-    #         self.msg += "    Markers didn't have 'data' coordinates, " \
-    #                     "not drawing\n"
-    #         warnings.warn("Bummer! Plotly can currently only draw Line2D "
-    #                       "objects from matplotlib that are in 'data' "
-    #                       "coordinates!")
+            line, marker = None, None
+            if props['linestyle'] and props['markerstyle']:
+                self.msg += "... with both lines+markers\n"
+                mode = "lines+markers"
+            elif props['linestyle']:
+                self.msg += "... with just lines\n"
+                mode = "lines"
+            elif props['markerstyle']:
+                self.msg += "... with just markers\n"
+                mode = "markers"
+            if props['linestyle']:
+                line = PlotlyDict(
+                    kind='line',
+                    opacity=props['linestyle']['alpha'],
+                    color=props['linestyle']['color'],
+                    width=props['linestyle']['linewidth'],
+                    dash=tools.convert_dash(props['linestyle']['dasharray'])
+                )
+            if props['markerstyle']:
+                marker = PlotlyDict(
+                    kind='marker',
+                    opacity=props['markerstyle']['alpha'],
+                    color=props['markerstyle']['facecolor'],
+                    symbol=tools.convert_symbol(props['markerstyle']['marker']),
+                    size=props['markerstyle']['markersize'],
+                    line=PlotlyDict(
+                        kind='line',
+                        color=props['markerstyle']['edgecolor'],
+                        width=props['markerstyle']['edgewidth']
+                    )
+                )
+            if props['coordinates'] == 'data':
+                data = PlotlyDict(
+                    kind='data',
+                    mode=mode,
+                    name=props['label'],
+                    x=[xy_pair[0] for xy_pair in props['data']],
+                    y=[xy_pair[1] for xy_pair in props['data']],
+                    xaxis='x{}'.format(self.axis_ct),
+                    yaxis='y{}'.format(self.axis_ct),
+                    line=line,
+                    marker=marker,
+                    showlegend=False
+                )
+                self.data += data,
+                self.msg += "    Heck yeah, I drew that line\n"
+            else:
+                self.msg += "    Line didn't have 'data' coordinates, " \
+                            "not drawing\n"
+                warnings.warn("Bummer! Plotly can currently only draw Line2D "
+                              "objects from matplotlib that are in 'data' "
+                              "coordinates!")
 
     def draw_image(self, **props):
         """Draw image.
@@ -407,11 +369,14 @@ class PlotlyRenderer(Renderer):
         Not implemented yet!
 
         """
-        self.msg += "    Attempting to draw image\n"
-        self.msg += "    Not drawing image\n"
-        warnings.warn("Aw. Snap! You're gonna have to hold off on "
-                      "the selfies for now. Plotly can't import "
-                      "images from matplotlib yet!")
+        if self.mpl_legend is not None:
+            self.msg += "      Ignoring draw_image from legend\n"
+        else:
+            self.msg += "    Attempting to draw image\n"
+            self.msg += "    Not drawing image\n"
+            warnings.warn("Aw. Snap! You're gonna have to hold off on "
+                          "the selfies for now. Plotly can't import "
+                          "images from matplotlib yet!")
 
     def draw_path_collection(self, **props):
         """Add a path collection to data list as a scatter plot.
@@ -443,42 +408,46 @@ class PlotlyRenderer(Renderer):
         ]
 
         """
-        self.msg += "    Attempting to draw a path collection\n"
-        if props['offset_coordinates'] is 'data':
-            alpha_face = props['styles']['facecolor'][0][3]
-            rgb_face = [int(c*255)
-                        for c in props['styles']['facecolor'][0][:3]]
-            alpha_edge = props['styles']['edgecolor'][0][3]
-            rgb_edge = [int(c*255)
-                        for c in props['styles']['edgecolor'][0][:3]]
-            data = props['offsets']
-            marker = tools.convert_path(props['paths'][0])
-            style = {
-                'alpha': alpha_face,
-                'facecolor': 'rgb({},{},{})'.format(*rgb_face),
-                'marker': marker,
-                'edgecolor': 'rgb({},{},{})'.format(*rgb_edge),
-                'edgewidth': props['styles']['linewidth'][0],
-                'markersize': tools.convert_affine_trans(
-                    dpi=self.mpl_fig.get_dpi(),
-                    aff=props['path_transforms'][0])
-            }
-            scatter_props = {
-                'coordinates': 'data',
-                'data': data,
-                'label': None,
-                'markerstyle': style,
-                'linestyle': None
-            }
-            self.msg += "    Drawing path collection as markers\n"
-            self.draw_marked_line(**scatter_props)
+        if self.mpl_legend is not None:
+            self.msg += "      Ignoring draw_path_collection from legend\n"
         else:
-            self.msg += "    Path collection not linked to 'data', " \
-                        "not drawing\n"
-            warnings.warn("Dang! That path collection is out of this "
-                          "world. I totally don't know what to do with "
-                          "it yet! Plotly can only import path "
-                          "collections linked to 'data' coordinates")
+            self.msg += "    Attempting to draw a path collection\n"
+            if props['offset_coordinates'] is 'data':
+                alpha_face = props['styles']['facecolor'][0][3]
+                rgb_face = [int(c*255)
+                            for c in props['styles']['facecolor'][0][:3]]
+                alpha_edge = props['styles']['edgecolor'][0][3]
+                rgb_edge = [int(c*255)
+                            for c in props['styles']['edgecolor'][0][:3]]
+                data = props['offsets']
+                marker = tools.convert_path(props['paths'][0])
+                style = {
+                    'alpha': alpha_face,
+                    'facecolor': 'rgb({},{},{})'.format(*rgb_face),
+                    'marker': marker,
+                    'edgecolor': 'rgb({},{},{})'.format(*rgb_edge),
+                    'edgewidth': props['styles']['linewidth'][0],
+                    'markersize': tools.convert_affine_trans(
+                        dpi=self.mpl_fig.get_dpi(),
+                        aff=props['path_transforms'][0])
+                }
+                scatter_props = {
+                    'coordinates': 'data',
+                    'data': data,
+                    'label': None,
+                    'markerstyle': style,
+                    'linestyle': None,
+                    'mplobj': None
+                }
+                self.msg += "    Drawing path collection as markers\n"
+                self.draw_marked_line(**scatter_props)
+            else:
+                self.msg += "    Path collection not linked to 'data', " \
+                            "not drawing\n"
+                warnings.warn("Dang! That path collection is out of this "
+                              "world. I totally don't know what to do with "
+                              "it yet! Plotly can only import path "
+                              "collections linked to 'data' coordinates")
 
     def draw_path(self, **props):
         """Draw path, currently only attempts to draw bar charts.
@@ -505,21 +474,24 @@ class PlotlyRenderer(Renderer):
         ]
 
         """
-        self.msg += "    Attempting to draw a path\n"
-        is_bar = tools.is_bar(**props)
-        is_barh = tools.is_barh(**props)
-        if is_bar:  # if we think it's a bar, add it!
-            self.msg += "      Assuming path is a vertical bar\n"
-            bar = tools.make_bar(bardir='v', **props)
-            self.file_bar(bar)
-        if is_barh:  # perhaps a horizontal bar?
-            self.msg += "      Assuming path is a horizontal bar\n"
-            bar = tools.make_bar(bardir='h', **props)
-            self.file_bar(bar)
-        if not (is_bar or is_barh):
-            self.msg += "    This path isn't a bar, not drawing\n"
-            warnings.warn("I found a path object that I don't think is part "
-                          "of a bar chart. Ignoring.")
+        if self.mpl_legend is not None:
+            self.msg += "      Ignoring draw_path from legend\n"
+        else:
+            self.msg += "    Attempting to draw a path\n"
+            is_bar = tools.is_bar(**props)
+            is_barh = tools.is_barh(**props)
+            if is_bar:  # if we think it's a bar, add it!
+                self.msg += "      Assuming path is a vertical bar\n"
+                bar = tools.make_bar(bardir='v', **props)
+                self.file_bar(bar)
+            if is_barh:  # perhaps a horizontal bar?
+                self.msg += "      Assuming path is a horizontal bar\n"
+                bar = tools.make_bar(bardir='h', **props)
+                self.file_bar(bar)
+            if not (is_bar or is_barh):
+                self.msg += "    This path isn't a bar, not drawing\n"
+                warnings.warn("I found a path object that I don't think is "
+                              "part of a bar chart. Ignoring.")
 
     def file_bar(self, bar):
         """Puts a given bar into an appropriate bar or barh collection.
@@ -596,56 +568,59 @@ class PlotlyRenderer(Renderer):
 
         """
         self.msg += "    Attempting to draw an mpl text object\n"
-        if 'annotations' not in self.layout:
-            self.layout['annotations'] = PlotlyList()
-        if props['text_type'] == 'xlabel':
-            self.msg += "      Text object is an xlabel\n"
-            self.draw_xlabel(**props)
-        elif props['text_type'] == 'ylabel':
-            self.msg += "      Text object is a ylabel\n"
-            self.draw_ylabel(**props)
-        elif props['text_type'] == 'title':
-            self.msg += "      Text object is a title\n"
-            self.draw_title(**props)
-        else:  # just a regular text annotation...
-            self.msg += "      Text object is a normal annotation\n"
-            if props['coordinates'] is not 'data':
-                self.msg += "        Text object isn't linked to 'data' " \
-                            "coordinates\n"
-                x_px, y_px = props['mplobj'].get_transform().transform(
-                    props['position'])
-                x, y = tools.display_to_paper(x_px, y_px, self.layout)
-                xref = 'paper'
-                yref = 'paper'
-                xanchor = props['style']['halign']  # no difference here!
-                yanchor = tools.convert_va(props['style']['valign'])
-            else:
-                self.msg += "        Text object is linked to 'data' " \
-                            "coordinates\n"
-                x, y = props['position']
-                xref = 'x{}'.format(self.axis_ct)
-                yref = 'y{}'.format(self.axis_ct)
-                xanchor = 'center'
-                yanchor = 'middle'
-            annotation = PlotlyDict(
-                kind='annotation',
-                text=props['text'],
-                opacity=props['style']['alpha'],
-                x=x,
-                y=y,
-                xref=xref,
-                yref=yref,
-                xanchor=xanchor,
-                yanchor=yanchor,
-                showarrow=False,  # change this later?
-                font=PlotlyDict(
-                    kind='font',
-                    color=props['style']['color'],
-                    size=props['style']['fontsize']
+        if self.mpl_legend is not None:
+            self.msg += "      Ignoring draw_text from legend\n"
+        else:
+            if 'annotations' not in self.layout:
+                self.layout['annotations'] = PlotlyList()
+            if props['text_type'] == 'xlabel':
+                self.msg += "      Text object is an xlabel\n"
+                self.draw_xlabel(**props)
+            elif props['text_type'] == 'ylabel':
+                self.msg += "      Text object is a ylabel\n"
+                self.draw_ylabel(**props)
+            elif props['text_type'] == 'title':
+                self.msg += "      Text object is a title\n"
+                self.draw_title(**props)
+            else:  # just a regular text annotation...
+                self.msg += "      Text object is a normal annotation\n"
+                if props['coordinates'] is not 'data':
+                    self.msg += "        Text object isn't linked to 'data' " \
+                                "coordinates\n"
+                    x_px, y_px = props['mplobj'].get_transform().transform(
+                        props['position'])
+                    x, y = tools.display_to_paper(x_px, y_px, self.layout)
+                    xref = 'paper'
+                    yref = 'paper'
+                    xanchor = props['style']['halign']  # no difference here!
+                    yanchor = tools.convert_va(props['style']['valign'])
+                else:
+                    self.msg += "        Text object is linked to 'data' " \
+                                "coordinates\n"
+                    x, y = props['position']
+                    xref = 'x{}'.format(self.axis_ct)
+                    yref = 'y{}'.format(self.axis_ct)
+                    xanchor = 'center'
+                    yanchor = 'middle'
+                annotation = PlotlyDict(
+                    kind='annotation',
+                    text=props['text'],
+                    opacity=props['style']['alpha'],
+                    x=x,
+                    y=y,
+                    xref=xref,
+                    yref=yref,
+                    xanchor=xanchor,
+                    yanchor=yanchor,
+                    showarrow=False,  # change this later?
+                    font=PlotlyDict(
+                        kind='font',
+                        color=props['style']['color'],
+                        size=props['style']['fontsize']
+                    )
                 )
-            )
-            self.layout['annotations'] += annotation,
-            self.msg += "    Heck, yeah I drew that annotation\n"
+                self.layout['annotations'] += annotation,
+                self.msg += "    Heck, yeah I drew that annotation\n"
 
     def draw_title(self, **props):
         """Add a title to the current subplot in layout dictionary.

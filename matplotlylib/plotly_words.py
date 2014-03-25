@@ -34,7 +34,8 @@ INFO = dict(
                'type',
                'error_y',
                'opacity',
-               'bardir'],
+               'bardir',
+               'showlegend'],
         repair_vals=dict(xaxis=['x1', None],
                          yaxis=['y1', None]),
         repair_keys=dict()
