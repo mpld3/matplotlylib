@@ -2,7 +2,7 @@
 
 
 ### Sharing matplotlib figures online with plotly
-------------------------------
+-------------------------------------------------
 
 About 
 -----

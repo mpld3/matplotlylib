@@ -8,7 +8,7 @@ exec(open('matplotlylib/version.py').read())
 setup(name='matplotlylib',
       version=__version__,
       description="Matplotlib to Plotly Converter",
-      long_description=open('README.txt').read(),
+      long_description=open('README.rst').read(),
       author="Andrew Seier",
       author_email="andseier@gmail.com",
       install_requires=['plotly', 'matplotlib'],
