@@ -20,4 +20,5 @@ setup(name='matplotlylib',
       license='MIT',
       packages=['matplotlylib',
                 'matplotlylib/mplexporter',
-                'matplotlylib/mplexporter/renderers'])
+                'matplotlylib/mplexporter/renderers'],
+      platform='matplotlylib-v{}'.format(__version__))

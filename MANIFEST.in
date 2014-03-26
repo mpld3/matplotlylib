@@ -1,0 +1,6 @@
+README.md
+setup.py
+matplotlylib/*.py
+matplotlylib/mplexporter/*.py
+matplotlylib/mplexporter/__init__.py
+matplotlylib/mplexporter/base.py
