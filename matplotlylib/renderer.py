@@ -79,6 +79,7 @@ class PlotlyRenderer(Renderer):
             width=int(props['figwidth']*props['dpi']),
             height=int(props['figheight']*props['dpi']),
             autosize=False,
+            showlegend=False,
             hovermode='closest')
         self.mpl_x_bounds, self.mpl_y_bounds = tools.get_axes_bounds(fig)
         margin = PlotlyDict(
@@ -111,7 +112,6 @@ class PlotlyRenderer(Renderer):
         self.layout.repair_vals()
         self.layout.clean()
         self.layout.check()
-        self.layout['showlegend'] = False
         self.msg += "Closing figure\n"
         self.mpl_fig = None
 
@@ -356,6 +356,7 @@ class PlotlyRenderer(Renderer):
                 )
                 self.data += data,
                 self.msg += "    Heck yeah, I drew that line\n"
+                self.index_data(obj=props['mplobj'])
             else:
                 self.msg += "    Line didn't have 'data' coordinates, " \
                             "not drawing\n"

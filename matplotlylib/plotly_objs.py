@@ -194,8 +194,8 @@ class PlotlyDict(dict):
                 val.check()
             except AttributeError:
                 if key not in _info['valid']:
-                    raise KeyError("Invalid key, {}, for type {}".format(
-                        key, type(self)))
+                    raise KeyError("Invalid key, '{}', for PlotlyDict kind, "
+                                   "'{}'".format(key, _info['kind']))
         self._push_info(_info)
 
     def repair_vals(self):
