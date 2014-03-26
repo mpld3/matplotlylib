@@ -58,4 +58,4 @@ Details
 -------
 Created by: Plotly <matplotlylib@gmail.com>, [@plotlygraphs](https://twitter.com/plotlygraphs)
 
-License: BSD 3-clause
+License: MIT
