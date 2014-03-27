@@ -24,8 +24,16 @@ Plotly_ is an online collaborative data analysis and graphing tool. The
 matplotlylib package allows users to export matplotlib figures to plotly.
 Plotly figures are shared, tracked, and edited all online and the data is
 always accessible from the graph. The goal of this project is to offer users
-a simple interface to send a matplotlib figure to plotly from Python::
+a simple interface to send a matplotlib figure to plotly from Python. Here's
+a trivial example usage to get you up and running::
 
+    import matplotlib.pyplot as plt
+    from matplotlylib import fig_to_plotly
+    username = 'your plotly username here!'
+    api_key = 'your plotly api_key here!'
+
+    fig, ax = plt.subplots()
+    ax.plot([1,2,3], [1,4,2])
     fig_to_plotly(fig, username, api_key)
 
 That's it. Find out more, sign up, and start sharing by visiting us at
